@@ -1,0 +1,129 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows AMD64
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.x'
+          cache: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: Verify Go modules
+        run: go mod verify
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Audit frontend dependencies
+        run: npm audit --prefix frontend --audit-level=high --registry=https://registry.npmjs.org
+
+      - name: Build frontend
+        run: npm --prefix frontend run build
+
+      - name: Vet Go code
+        run: go vet ./...
+
+      - name: Audit Go dependencies
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+
+      - name: Build application
+        run: go run github.com/wailsapp/wails/v2/cmd/wails@v2.14.0 build -clean -trimpath -s -ldflags "-s -w -buildid="
+
+      - name: Prepare release executable
+        shell: pwsh
+        run: |
+          $version = (Get-Content -Raw -LiteralPath 'frontend/package.json' | ConvertFrom-Json).version
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") {
+            throw "Tag $env:GITHUB_REF_NAME does not match application version v$version"
+          }
+          $archive = "build/bin/NetToolbox-v$version-windows-x64.zip"
+          Compress-Archive -LiteralPath 'build/bin/NetToolbox.exe' -DestinationPath $archive -CompressionLevel Optimal -Force
+          if (-not (Test-Path -LiteralPath $archive)) {
+            throw 'Release archive was not created'
+          }
+
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: network-toolbox-windows-amd64
+          path: |
+            build/bin/NetToolbox.exe
+            build/bin/NetToolbox-v*-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish Release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download Windows executable
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: network-toolbox-windows-amd64
+          path: release
+
+      - name: Publish GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          archive="release/NetToolbox-${tag}-windows-x64.zip"
+          notes=".github/release-notes/${tag}.md"
+
+          if [[ ! -f "$archive" ]]; then
+            echo "Expected release archive not found: $archive" >&2
+            exit 1
+          fi
+
+          if [[ ! -f "$notes" ]]; then
+            echo "Expected release notes not found: $notes" >&2
+            exit 1
+          fi
+
+          gh release delete "$tag" --yes || true
+          gh release create "$tag" "$archive" \
+            --target "$GITHUB_SHA" \
+            --title "NetToolbox $tag" \
+            --notes-file "$notes" \
+            --latest

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "网络工具箱",
+  "outputfilename": "NetToolbox",
+  "frontend:install": "npm ci",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "网络工具箱 contributors",
+    "email": ""
+  },
+  "info": {
+    "companyName": "Network Toolbox Contributors",
+    "productName": "网络工具箱",
+    "productVersion": "0.1.0",
+    "copyright": "Copyright © 2026 Network Toolbox Contributors",
+    "comments": "A lightweight Windows network diagnostics and 802.1X toolkit."
+  }
+}

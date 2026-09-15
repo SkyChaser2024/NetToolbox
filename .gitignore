@@ -1,0 +1,23 @@
+# Build output and dependencies
+/build/bin/
+/frontend/dist/
+/frontend/node_modules/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+config.json
+
+# Editors, logs and temporary files
+.idea/
+.vscode/
+*.log
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
