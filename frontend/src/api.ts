@@ -207,6 +207,7 @@ interface BackendAPI {
   CheckPublicIPv4(): Promise<PublicNetworkInfo>
   CheckPublicIPv6(): Promise<PublicNetworkInfo>
   CheckLatency(id: string): Promise<LatencyProbe>
+  CancelLatencyChecks(): Promise<void>
   CheckNAT(): Promise<NATResult>
   CheckIPv6(): Promise<IPv6Result>
   OpenLink(url: string): Promise<void>
@@ -259,6 +260,7 @@ const previewAPI: BackendAPI = {
   async CheckPublicIPv4() { throw new Error('请在 Wails 桌面应用中查看网络概览') },
   async CheckPublicIPv6() { throw new Error('请在 Wails 桌面应用中查看网络概览') },
   async CheckLatency() { throw new Error('请在 Wails 桌面应用中运行连接测试') },
+  async CancelLatencyChecks() {},
   async CheckNAT() { throw new Error('请在 Wails 桌面应用中运行网络检测') },
   async CheckIPv6() { throw new Error('请在 Wails 桌面应用中运行网络检测') },
   async OpenLink(url: string) { window.open(url, '_blank', 'noopener,noreferrer') },

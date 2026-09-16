@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -67,14 +68,15 @@ const (
 	publicInfoWhois             = "ip-whois"
 	publicInfoPlain             = "plain"
 	maxPublicInfoProviders      = 18
+	maxConcurrentPublicInfo     = 4
 	maxPublicInfoResponseBytes  = 64 * 1024
 	maxConcurrentLatencyTargets = 16
 )
 
-func CheckOverview(ctx context.Context, targets []LatencyTarget, ipv4Endpoints, ipv6Endpoints []string) OverviewResult {
-	result := OverviewResult{CheckedAt: time.Now().Format("15:04:05")}
+func CheckOverview(ctx context.Context, ipv4Endpoints, ipv6Endpoints []string) OverviewResult {
+	result := OverviewResult{Probes: make([]LatencyProbe, 0), CheckedAt: time.Now().Format("15:04:05")}
 	var wait sync.WaitGroup
-	wait.Add(3)
+	wait.Add(2)
 	go func() {
 		defer wait.Done()
 		result.IPv4 = fetchPublicNetworkInfo(ctx, "tcp4", ipv4Endpoints)
@@ -82,10 +84,6 @@ func CheckOverview(ctx context.Context, targets []LatencyTarget, ipv4Endpoints, 
 	go func() {
 		defer wait.Done()
 		result.IPv6 = fetchPublicNetworkInfo(ctx, "tcp6", ipv6Endpoints)
-	}()
-	go func() {
-		defer wait.Done()
-		result.Probes = probeLatencyTargets(ctx, targets)
 	}()
 	wait.Wait()
 	return result
@@ -160,12 +158,20 @@ func fetchFirstPublicInfo(ctx context.Context, client *http.Client, network stri
 		err      error
 		detailed bool
 	}
-	responses := make(chan response, len(providers))
-	for _, provider := range providers {
+	workerCount := min(len(providers), maxConcurrentPublicInfo)
+	responses := make(chan response, workerCount)
+	nextProvider, active := 0, 0
+	startProvider := func() {
+		provider := providers[nextProvider]
+		nextProvider++
+		active++
 		go func() {
 			info, err := fetchPublicInfoProvider(providerContext, client, network, provider)
 			responses <- response{info: info, err: err, detailed: provider.format != publicInfoPlain}
 		}()
+	}
+	for active < workerCount {
+		startProvider()
 	}
 	var failures []string
 	var fallback *PublicNetworkInfo
@@ -176,7 +182,7 @@ func fetchFirstPublicInfo(ctx context.Context, client *http.Client, network stri
 			graceTimer.Stop()
 		}
 	}()
-	for range providers {
+	for active > 0 {
 		select {
 		case <-ctx.Done():
 			if fallback != nil {
@@ -186,6 +192,7 @@ func fetchFirstPublicInfo(ctx context.Context, client *http.Client, network stri
 		case <-grace:
 			return *fallback, nil
 		case result := <-responses:
+			active--
 			if result.err == nil {
 				if result.detailed {
 					return result.info, nil
@@ -195,9 +202,12 @@ func fetchFirstPublicInfo(ctx context.Context, client *http.Client, network stri
 					graceTimer = time.NewTimer(600 * time.Millisecond)
 					grace = graceTimer.C
 				}
-				continue
+			} else {
+				failures = append(failures, result.err.Error())
 			}
-			failures = append(failures, result.err.Error())
+			if nextProvider < len(providers) {
+				startProvider()
+			}
 		}
 	}
 	if fallback != nil {
@@ -338,23 +348,6 @@ func validatePublicAddress(address, network string) error {
 	return nil
 }
 
-func probeLatencyTargets(ctx context.Context, targets []LatencyTarget) []LatencyProbe {
-	if len(targets) > maxConcurrentLatencyTargets {
-		targets = targets[:maxConcurrentLatencyTargets]
-	}
-	results := make([]LatencyProbe, len(targets))
-	var wait sync.WaitGroup
-	wait.Add(len(targets))
-	for index, target := range targets {
-		go func() {
-			defer wait.Done()
-			results[index] = probeHTTP(ctx, target)
-		}()
-	}
-	wait.Wait()
-	return results
-}
-
 func decodeJSONResponse(reader io.Reader, destination any) error {
 	payload, err := io.ReadAll(io.LimitReader(reader, maxPublicInfoResponseBytes+1))
 	if err != nil {
@@ -372,21 +365,12 @@ func probeHTTP(ctx context.Context, target LatencyTarget) LatencyProbe {
 		return LatencyProbe{ID: target.ID, Name: target.Name, URL: target.URL, Region: target.Region, Status: "failed", Error: "网站地址无效"}
 	}
 	result := LatencyProbe{ID: target.ID, Name: target.Name, Host: parsed.Hostname(), URL: target.URL, Region: target.Region}
-	probeContext, cancel := context.WithTimeout(ctx, 3500*time.Millisecond)
+	probeContext, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
-	dialer := &net.Dialer{Timeout: 3 * time.Second}
-	transport := &http.Transport{
-		Proxy:               nil,
-		DialContext:         dialer.DialContext,
-		TLSHandshakeTimeout: 3 * time.Second,
-		DisableKeepAlives:   true,
-	}
-	defer transport.CloseIdleConnections()
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   3500 * time.Millisecond,
-	}
-	request, err := http.NewRequestWithContext(probeContext, http.MethodGet, target.URL, nil)
+	query := parsed.Query()
+	query.Set("_nettoolbox_ts", strconv.FormatInt(time.Now().UnixMilli(), 10))
+	parsed.RawQuery = query.Encode()
+	request, err := http.NewRequestWithContext(probeContext, http.MethodHead, parsed.String(), nil)
 	if err != nil {
 		result.Status = "failed"
 		result.Error = compactNetworkError(err)
@@ -401,10 +385,11 @@ func probeHTTP(ctx context.Context, target LatencyTarget) LatencyProbe {
 		},
 	}))
 	request.Header.Set("User-Agent", appmeta.UserAgent)
-	request.Header.Set("Accept", "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8")
+	request.Header.Set("Accept", "*/*")
 	request.Header.Set("Cache-Control", "no-cache")
+	request.Header.Set("Pragma", "no-cache")
 	started := time.Now()
-	response, err := client.Do(request)
+	response, err := latencyHTTPClient.Do(request)
 	result.LatencyMs = time.Since(started).Milliseconds()
 	if err != nil {
 		result.Status = "failed"
@@ -418,6 +403,27 @@ func probeHTTP(ctx context.Context, target LatencyTarget) LatencyProbe {
 	result.Status = "ok"
 	result.StatusCode = response.StatusCode
 	return result
+}
+
+var latencyHTTPTransport = &http.Transport{
+	Proxy:                 nil,
+	DialContext:           (&net.Dialer{Timeout: 4 * time.Second, KeepAlive: 15 * time.Second}).DialContext,
+	ForceAttemptHTTP2:     false,
+	MaxIdleConns:          4,
+	MaxIdleConnsPerHost:   1,
+	IdleConnTimeout:       5 * time.Second,
+	TLSHandshakeTimeout:   4 * time.Second,
+	ResponseHeaderTimeout: 7 * time.Second,
+}
+
+var latencyHTTPClient = &http.Client{
+	Transport: latencyHTTPTransport,
+	Timeout:   8 * time.Second,
+}
+
+// CloseLatencyConnections releases idle sockets as soon as the UI is hidden.
+func CloseLatencyConnections() {
+	latencyHTTPTransport.CloseIdleConnections()
 }
 
 func isTimeoutError(err error) bool {

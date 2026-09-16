@@ -44,6 +44,7 @@ func saveOverviewCache(result networkdiag.OverviewResult) error {
 }
 
 func saveOverviewCacheAt(path string, result networkdiag.OverviewResult) error {
+	result.Probes = nil
 	data, err := json.Marshal(overviewCacheDocument{Version: overviewCacheVersion, Result: result})
 	if err != nil {
 		return err
@@ -101,5 +102,7 @@ func loadOverviewCacheAt(path string) (networkdiag.OverviewResult, error) {
 	if document.Version != overviewCacheVersion || document.Result.CheckedAt == "" {
 		return networkdiag.OverviewResult{}, errors.New("网络概览缓存版本无效")
 	}
+	// Latency samples are live UI state and should not survive a hidden window.
+	document.Result.Probes = make([]networkdiag.LatencyProbe, 0)
 	return document.Result, nil
 }

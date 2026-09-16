@@ -21,6 +21,7 @@ import (
 )
 
 func runBackground(icon []byte) error {
+	configureBackgroundRuntime()
 	release, alreadyRunning, err := acquireBackgroundLock()
 	if err != nil {
 		return err
@@ -187,6 +188,9 @@ func monitorAuthentication(ctx context.Context, store *settings.Store, setStatus
 func waitBackground(ctx context.Context, duration time.Duration) bool {
 	timer := time.NewTimer(duration)
 	defer timer.Stop()
+	if duration >= 30*time.Second {
+		trimBackgroundWorkingSet()
+	}
 	select {
 	case <-ctx.Done():
 		return false

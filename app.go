@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"campusnet-toolbox/internal/adapters"
@@ -61,11 +62,21 @@ type AuthRequest struct {
 }
 
 type App struct {
-	ctx              context.Context
-	auth             *auth.Manager
-	settings         *settings.Store
-	configurationErr error
-	restoreOverview  bool
+	ctx               context.Context
+	auth              *auth.Manager
+	settings          *settings.Store
+	configurationErr  error
+	restoreOverview   bool
+	latencyMu         sync.Mutex
+	latencySequence   uint64
+	latencyChecks     map[string]latencyCheck
+	latencyTargets    []networkdiag.LatencyTarget
+	latencyConfigured bool
+}
+
+type latencyCheck struct {
+	sequence uint64
+	cancel   context.CancelFunc
 }
 
 func NewApp(restoreOverview bool) *App {
@@ -78,6 +89,7 @@ func (a *App) startup(ctx context.Context) {
 }
 
 func (a *App) shutdown(_ context.Context) {
+	a.CancelLatencyChecks()
 	_ = a.auth.Stop(false)
 }
 
@@ -95,6 +107,7 @@ func (a *App) beforeClose(_ context.Context) bool {
 }
 
 func (a *App) Bootstrap() BootstrapData {
+	defer releaseUnusedForegroundMemory()
 	data := BootstrapData{
 		Profile: settings.DefaultProfile(), Diagnostics: settings.DefaultDiagnostics(), System: settings.DefaultSystemPreferences(),
 		AuthState: a.auth.State(), Version: appmeta.Version,
@@ -114,11 +127,18 @@ func (a *App) Bootstrap() BootstrapData {
 			data.System = system
 		}
 	}
-	adapterResult := adapters.List()
+	a.cacheLatencyTargets(data.Diagnostics.LatencyTargets)
+	networkInterfaces, err := listNetworkInterfaces()
+	data.NetworkInterfaces = networkInterfaces
+	var adapterResult adapters.Result
+	if err == nil {
+		adapterResult = adapters.ListWithInterfaces(data.NetworkInterfaces)
+	} else {
+		adapterResult = adapters.List()
+	}
 	data.Adapters = adapterResult.Adapters
 	data.NpcapAvailable = adapterResult.NpcapAvailable
 	data.AdapterError = adapterResult.Error
-	data.NetworkInterfaces, _ = listNetworkInterfaces()
 	if a.restoreOverview {
 		if cached, err := loadOverviewCache(); err == nil {
 			data.CachedOverview = &cached
@@ -264,6 +284,7 @@ func (a *App) SaveSettings(request SettingsRequest) (SettingsResult, error) {
 	if err != nil {
 		return SettingsResult{}, err
 	}
+	a.cacheLatencyTargets(diagnostics.LatencyTargets)
 	if request.System.AutoAuthenticate && request.System.AutoAuthenticate != previousSystem.AutoAuthenticate {
 		if err := autostart.Start(); err != nil {
 			return SettingsResult{}, err
@@ -325,16 +346,73 @@ func (a *App) CheckOverview() networkdiag.OverviewResult {
 	diagnostics := a.loadDiagnostics()
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
-	result := networkdiag.CheckOverview(ctx, latencyTargets(diagnostics.LatencyTargets), diagnostics.IPv4Endpoints, diagnostics.IPv6Endpoints)
+	result := networkdiag.CheckOverview(ctx, diagnostics.IPv4Endpoints, diagnostics.IPv6Endpoints)
 	_ = saveOverviewCache(result)
 	return result
 }
 
 func (a *App) CheckLatency(id string) networkdiag.LatencyProbe {
+	targets := a.currentLatencyTargets()
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+
+	a.latencyMu.Lock()
+	if a.latencyChecks == nil {
+		a.latencyChecks = make(map[string]latencyCheck)
+	}
+	if previous, exists := a.latencyChecks[id]; exists {
+		previous.cancel()
+	}
+	a.latencySequence++
+	sequence := a.latencySequence
+	a.latencyChecks[id] = latencyCheck{sequence: sequence, cancel: cancel}
+	a.latencyMu.Unlock()
+
+	defer func() {
+		cancel()
+		a.latencyMu.Lock()
+		if current, exists := a.latencyChecks[id]; exists && current.sequence == sequence {
+			delete(a.latencyChecks, id)
+		}
+		a.latencyMu.Unlock()
+	}()
+	return networkdiag.CheckLatency(ctx, id, targets)
+}
+
+func (a *App) cacheLatencyTargets(values []settings.LatencyTarget) {
+	targets := latencyTargets(values)
+	a.latencyMu.Lock()
+	a.latencyTargets = targets
+	a.latencyConfigured = true
+	a.latencyMu.Unlock()
+}
+
+func (a *App) currentLatencyTargets() []networkdiag.LatencyTarget {
+	a.latencyMu.Lock()
+	if a.latencyConfigured {
+		targets := append([]networkdiag.LatencyTarget(nil), a.latencyTargets...)
+		a.latencyMu.Unlock()
+		return targets
+	}
+	a.latencyMu.Unlock()
+
 	diagnostics := a.loadDiagnostics()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	return networkdiag.CheckLatency(ctx, id, latencyTargets(diagnostics.LatencyTargets))
+	a.cacheLatencyTargets(diagnostics.LatencyTargets)
+
+	a.latencyMu.Lock()
+	targets := append([]networkdiag.LatencyTarget(nil), a.latencyTargets...)
+	a.latencyMu.Unlock()
+	return targets
+}
+
+func (a *App) CancelLatencyChecks() {
+	a.latencyMu.Lock()
+	checks := a.latencyChecks
+	a.latencyChecks = nil
+	for _, check := range checks {
+		check.cancel()
+	}
+	a.latencyMu.Unlock()
+	networkdiag.CloseLatencyConnections()
 }
 
 func (a *App) CheckPublicIPv4() networkdiag.PublicNetworkInfo {

@@ -28,6 +28,7 @@ func main() {
 		}
 		return
 	}
+	configureForegroundRuntime()
 	releaseInstance, alreadyRunning, instanceErr := acquireMainInstance()
 	if instanceErr != nil {
 		_, _ = fmt.Fprintln(os.Stderr, "单实例检查失败:", instanceErr)

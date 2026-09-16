@@ -112,9 +112,7 @@
 .latency-group { margin-top: 14px; }
 .latency-group + .latency-group { margin-top: 11px; }
 .latency-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; }
-.latency-card { min-width: 0; min-height: 80px; padding: 12px 13px; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 11px; align-items: center; color: var(--text); border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--surface-muted) 78%, var(--surface-solid)); font: inherit; text-align: left; cursor: pointer; transition: border-color .16s ease, background .16s ease, box-shadow .16s ease; }
-.latency-card:not(:disabled):hover { border-color: color-mix(in srgb, var(--blue) 35%, var(--line-strong)); background: var(--surface-solid); box-shadow: 0 5px 14px rgba(34, 55, 86, .07); }
-.latency-card:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.latency-card { min-width: 0; min-height: 80px; padding: 12px 13px; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 11px; align-items: center; color: var(--text); border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--surface-muted) 78%, var(--surface-solid)); font: inherit; text-align: left; transition: border-color .16s ease, background .16s ease; }
 .latency-card.running { cursor: wait; }
 .latency-card.pending { border-color: color-mix(in srgb, var(--blue) 14%, var(--line)); }
 .service-mark { width: 40px; height: 40px; display: grid; place-items: center; color: #fff; border-radius: 12px; background: #6b7280; font-size: 10px; font-weight: 800; }
@@ -170,11 +168,6 @@
 .settings-overview .about-copy h2 { margin: 0; font-size: 24px; letter-spacing: -.55px; }
 .settings-save-meta { z-index: 1; display: flex; flex-direction: column; align-items: flex-end; gap: 9px; }
 .settings-save-meta .version { margin: 0; }
-.autosave-status { display: flex; align-items: center; gap: 6px; color: var(--text-3); font-size: 11px; font-weight: 650; white-space: nowrap; }
-.autosave-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); }
-.autosave-status.pending i, .autosave-status.saving i { background: var(--blue); animation: pulse 1s infinite; }
-.autosave-status.saved { color: var(--green); }.autosave-status.saved i { background: var(--green); }
-.autosave-status.error { color: var(--red); }.autosave-status.error i { background: var(--red); }
 .overview-facts { margin-top: 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: var(--text-2); font-size: 10.5px; line-height: 1.3; }
 .overview-facts span { padding: 4px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-muted); white-space: nowrap; }
 .settings-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 17px; }.settings-heading h3 { margin: 0; font-size: 14px; }.settings-heading p { margin: 6px 0 0; color: var(--text-3); font-size: 11px; line-height: 1.45; }
@@ -197,7 +190,7 @@
 .brand span { font-size: 12.5px; }
 .version-note, .overview-meta small, .log-row time, .protocol-strip, .adapter-card code, .adapter-metrics, .latency-value small, .result-status small, .website-name small, .website-error, .version { font-size: 10.5px; }
 .eyebrow, .live-indicator, .section-badge { font-size: 11px; }
-.field small, .form-actions > span, .section-title p, .empty-state p, .log-row p, .notice, .overview-meta > span, .public-facts span, .public-error, .adapter-card small, .region-label, .latency-pending, .latency-waiting, .behavior-list span, .result-table-head, .progress-steps p, .ip-card > p, .website-result, .overview-facts, .settings-heading p, .reset-button, .settings-field small, .priority-option small, .toggle-setting p, .toggle-setting div > small, .plain-check, .settings-disclosure summary small, .summary-side, .autosave-status, .loading-card, .toast { font-size: 11.5px; }
+.field small, .form-actions > span, .section-title p, .empty-state p, .log-row p, .notice, .overview-meta > span, .public-facts span, .public-error, .adapter-card small, .region-label, .latency-pending, .latency-waiting, .behavior-list span, .result-table-head, .progress-steps p, .ip-card > p, .website-result, .overview-facts, .settings-heading p, .reset-button, .settings-field small, .priority-option small, .toggle-setting p, .toggle-setting div > small, .plain-check, .settings-disclosure summary small, .summary-side, .loading-card, .toast { font-size: 11.5px; }
 .public-facts b, .behavior-list strong, .result-table-row, .result-table code, .website-name strong, .settings-field > span, .priority-option strong, .toggle-setting strong, .settings-disclosure summary strong { font-size: 12.5px; }
 .adapter-card strong, .service-copy strong { font-size: 13px; }
 .settings-textarea, .settings-field input, .settings-field select { font-size: 12px; }

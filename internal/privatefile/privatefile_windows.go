@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"golang.org/x/sys/windows"
 )
@@ -27,6 +28,10 @@ func Write(path string, data []byte) error {
 		}
 	}()
 
+	if err := restrictToCurrentUser(temporaryPath); err != nil {
+		_ = temporary.Close()
+		return fmt.Errorf("限制文件访问权限失败: %w", err)
+	}
 	if err := temporary.Chmod(0o600); err != nil {
 		_ = temporary.Close()
 		return err
@@ -47,4 +52,30 @@ func Write(path string, data []byte) error {
 	}
 	keepTemporary = false
 	return nil
+}
+
+func restrictToCurrentUser(path string) error {
+	user, err := windows.GetCurrentProcessToken().GetTokenUser()
+	if err != nil {
+		return err
+	}
+	descriptor, err := windows.SecurityDescriptorFromString("D:P(A;;FA;;;" + user.User.Sid.String() + ")")
+	if err != nil {
+		return err
+	}
+	dacl, _, err := descriptor.DACL()
+	if err != nil {
+		return err
+	}
+	err = windows.SetNamedSecurityInfo(
+		path,
+		windows.SE_FILE_OBJECT,
+		windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION,
+		nil,
+		nil,
+		dacl,
+		nil,
+	)
+	runtime.KeepAlive(descriptor)
+	return err
 }

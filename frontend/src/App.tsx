@@ -34,7 +34,10 @@ const pageMeta: Record<Page, { title: string }> = {
 
 const serviceIcons = { douyin: siTiktok, bilibili: siBilibili, wechat: siWechat, taobao: siTaobao, github: siGithub, telegram: siTelegram, x: siX, youtube: siYoutube }
 
-const pendingLatencyProbes: LatencyProbe[] = defaultDiagnostics.latencyTargets.map(target => ({...target, host: new URL(target.url).hostname, status: 'pending'}))
+const latencySampleCount = 16
+const latencyPollIntervalMs = 618 * 3
+const pendingLatencyProbe = (target: LatencyTarget): LatencyProbe => ({...target, host: safeHostname(target.url), status: 'pending'})
+const pendingLatencyProbes: LatencyProbe[] = defaultDiagnostics.latencyTargets.map(pendingLatencyProbe)
 
 function Icon({ name, size = 20 }: { name: string; size?: number }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, 'aria-hidden': true }
@@ -65,28 +68,23 @@ function App() {
   const [overviewResult, setOverviewResult] = useState<OverviewResult | null>(null)
   const [overviewRunning, setOverviewRunning] = useState(true)
   const [publicRunning, setPublicRunning] = useState<Array<'ipv4' | 'ipv6'>>([])
-  const [latencyRunning, setLatencyRunning] = useState<string[]>([])
+  const [latencyPolling, setLatencyPolling] = useState(false)
   const [natResult, setNatResult] = useState<NATResult | null>(null)
   const [natRunning, setNatRunning] = useState(false)
   const [ipv6Result, setIPv6Result] = useState<IPv6Result | null>(null)
   const [ipv6Running, setIPv6Running] = useState(false)
   const [toast, setToast] = useState('')
+  const latencySamples = useRef<Record<string, number[]>>({})
+  const latencySampleKey = useRef('')
 
   const refreshOverview = async () => {
     setOverviewRunning(true)
-    try { setOverviewResult(await api().CheckOverview()) }
+    try {
+      const refreshed = await api().CheckOverview()
+      setOverviewResult(current => ({...refreshed, probes: current?.probes?.length ? current.probes : refreshed.probes}))
+    }
     catch (error) { setToast(errorMessage(error)) }
     finally { setOverviewRunning(false) }
-  }
-
-  const refreshLatency = async (id: string) => {
-    if (latencyRunning.includes(id)) return
-    setLatencyRunning(current => [...current, id])
-    try {
-      const probe = await api().CheckLatency(id)
-      setOverviewResult(current => current ? {...current, probes: current.probes.map(item => item.id === id ? probe : item), checkedAt: new Date().toLocaleTimeString('zh-CN', {hour12: false})} : current)
-    } catch (error) { setToast(errorMessage(error)) }
-    finally { setLatencyRunning(current => current.filter(item => item !== id)) }
   }
 
   const refreshPublicNetwork = async (version: 'ipv4' | 'ipv6') => {
@@ -104,14 +102,119 @@ function App() {
       setBootstrap(data)
       setAuthState(data.authState)
       if (data.configurationError) setToast(data.configurationError)
+      const pending = data.diagnostics.latencyTargets.map(pendingLatencyProbe)
       if (data.cachedOverview) {
-        setOverviewResult(data.cachedOverview)
+        setOverviewResult({...data.cachedOverview, probes: pending})
         setOverviewRunning(false)
       } else {
+        setOverviewResult({ipv4: {available: false}, ipv6: {available: false}, probes: pending, checkedAt: ''})
         void refreshOverview()
       }
     }).catch(error => { setToast(errorMessage(error)); void refreshOverview() })
   }, [])
+
+  const latencyTargetKey = bootstrap?.diagnostics.latencyTargets.map(target => `${target.id}\u0000${target.url}\u0000${target.name}\u0000${target.region}`).join('\u0001') || ''
+
+  useEffect(() => {
+    if (!bootstrap || !latencyTargetKey || page !== 'home') {
+      setLatencyPolling(false)
+      void api().CancelLatencyChecks()
+      return
+    }
+    const targets = bootstrap.diagnostics.latencyTargets.slice(0, 16)
+    if (latencySampleKey.current !== latencyTargetKey) {
+      latencySampleKey.current = latencyTargetKey
+      latencySamples.current = Object.fromEntries(targets.map(target => [target.id, []]))
+    }
+    let session = 0
+    let intervals: number[] = []
+
+    const clearIntervals = () => {
+      intervals.forEach(timer => window.clearInterval(timer))
+      intervals = []
+    }
+
+    const pause = () => {
+      session += 1
+      clearIntervals()
+      setLatencyPolling(false)
+      void api().CancelLatencyChecks()
+    }
+
+    const recordProbe = (target: LatencyTarget, probe: LatencyProbe) => {
+      const samples = latencySamples.current[target.id] || []
+      const sample = probe.status === 'ok' && typeof probe.latencyMs === 'number' && Number.isFinite(probe.latencyMs) ? probe.latencyMs : -1
+      samples.push(sample)
+      if (samples.length > latencySampleCount) samples.shift()
+      latencySamples.current[target.id] = samples
+
+      const valid = samples.filter(value => value >= 0)
+      let averaged = valid
+      if (valid.length > 5) {
+        const sorted = [...valid].sort((left, right) => left - right)
+        averaged = sorted.slice(1, -1)
+      }
+      const latencyMs = averaged.length ? Math.round(averaged.reduce((total, value) => total + value, 0) / averaged.length) : undefined
+      const displayed: LatencyProbe = latencyMs === undefined ? probe : {...probe, status: 'ok', latencyMs, error: undefined}
+
+      setOverviewResult(current => {
+        if (!current) return current
+        const existing = new Map(current.probes.map(item => [item.id, item]))
+        return {
+          ...current,
+          probes: targets.map(item => item.id === target.id ? displayed : existing.get(item.id) || pendingLatencyProbe(item)),
+        }
+      })
+    }
+
+    const pollSite = async (target: LatencyTarget, activeSession: number) => {
+      try {
+        const probe = await api().CheckLatency(target.id)
+        if (session !== activeSession || document.hidden) return
+        recordProbe(target, probe)
+      } catch {
+        if (session !== activeSession || document.hidden) return
+        recordProbe(target, {...pendingLatencyProbe(target), status: 'failed', error: '连接测试失败'})
+      }
+    }
+
+    const runSite = async (target: LatencyTarget, activeSession: number) => {
+      while (session === activeSession && !document.hidden && (latencySamples.current[target.id]?.length || 0) < latencySampleCount) {
+        await pollSite(target, activeSession)
+        await Promise.resolve()
+      }
+      if (session !== activeSession || document.hidden) return
+
+      let inProgress = false
+      const timer = window.setInterval(async () => {
+        if (session !== activeSession || document.hidden || inProgress) return
+        inProgress = true
+        try { await pollSite(target, activeSession) }
+        finally { inProgress = false }
+      }, latencyPollIntervalMs)
+      intervals.push(timer)
+    }
+
+    const start = () => {
+      if (document.hidden) return
+      clearIntervals()
+      const activeSession = ++session
+      setLatencyPolling(true)
+      targets.forEach(target => { void runSite(target, activeSession) })
+    }
+
+    const handleVisibility = () => {
+      if (document.hidden) pause()
+      else start()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    start()
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      pause()
+    }
+  }, [latencyTargetKey, page])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -157,7 +260,7 @@ function App() {
     </aside>
     <main className="main-area">
       <header className="topbar"><h1>{meta.title}</h1><div className="top-actions">{page === 'auth' && <StatusPill state={authState}/>}<button className="icon-button" onClick={cycleTheme} title={`主题：${theme}`} aria-label="切换界面主题"><Icon name="moon"/></button></div></header>
-      <div className="content-scroll">{page === 'home' ? <HomePage result={overviewResult} interfaces={bootstrap?.networkInterfaces || []} pendingProbes={bootstrap?.diagnostics.latencyTargets.map(target => ({...target, host: safeHostname(target.url), status: 'pending' as const})) || pendingLatencyProbes} running={overviewRunning} publicRunning={publicRunning} latencyRunning={latencyRunning} onRefresh={refreshOverview} onRefreshPublic={refreshPublicNetwork} onRefreshLatency={refreshLatency}/> : !bootstrap ? <LoadingCard text="正在读取网络环境…"/> : page === 'auth' ? <AuthPage data={bootstrap} state={authState} logs={logs} onAdapters={adapters => setBootstrap(current => current ? {...current, adapters} : current)} onProfile={profile => setBootstrap(current => current ? {...current, profile} : current)} onError={setToast}/> : page === 'nat' ? <NATPage result={natResult} setResult={setNatResult} running={natRunning} setRunning={setNatRunning} onError={setToast}/> : page === 'ipv6' ? <IPv6Page result={ipv6Result} setResult={setIPv6Result} running={ipv6Running} setRunning={setIPv6Running} onError={setToast}/> : <SettingsPage value={bootstrap} onSaved={result => setBootstrap(current => current ? {...current, ...result} : current)} onError={setToast}/>}</div>
+      <div className="content-scroll">{page === 'home' ? <HomePage result={overviewResult} interfaces={bootstrap?.networkInterfaces || []} pendingProbes={bootstrap?.diagnostics.latencyTargets.map(pendingLatencyProbe) || pendingLatencyProbes} running={overviewRunning} publicRunning={publicRunning} latencyPolling={latencyPolling} onRefresh={refreshOverview} onRefreshPublic={refreshPublicNetwork}/> : !bootstrap ? <LoadingCard text="正在读取网络环境…"/> : page === 'auth' ? <AuthPage data={bootstrap} state={authState} logs={logs} onAdapters={adapters => setBootstrap(current => current ? {...current, adapters} : current)} onProfile={profile => setBootstrap(current => current ? {...current, profile} : current)} onError={setToast}/> : page === 'nat' ? <NATPage result={natResult} setResult={setNatResult} running={natRunning} setRunning={setNatRunning} onError={setToast}/> : page === 'ipv6' ? <IPv6Page result={ipv6Result} setResult={setIPv6Result} running={ipv6Running} setRunning={setIPv6Running} onError={setToast}/> : <SettingsPage value={bootstrap} onSaved={result => setBootstrap(current => current ? {...current, ...result} : current)} onError={setToast}/>}</div>
     </main>
     {toast && <div className="toast" role="alert"><span>{toast}</span><button onClick={() => setToast('')} aria-label="关闭提示">×</button></div>}
   </div>
@@ -172,11 +275,10 @@ function StatusPill({ state }: { state: AuthState }) {
   return <div className={`status-pill ${state}`}><span className="status-dot"/>{labels[state]}</div>
 }
 
-function HomePage({ result, interfaces, pendingProbes, running, publicRunning, latencyRunning, onRefresh, onRefreshPublic, onRefreshLatency }: { result: OverviewResult | null; interfaces: NetworkInterface[]; pendingProbes: LatencyProbe[]; running: boolean; publicRunning: Array<'ipv4' | 'ipv6'>; latencyRunning: string[]; onRefresh: () => void; onRefreshPublic: (version: 'ipv4' | 'ipv6') => void; onRefreshLatency: (id: string) => void }) {
+function HomePage({ result, interfaces, pendingProbes, running, publicRunning, latencyPolling, onRefresh, onRefreshPublic }: { result: OverviewResult | null; interfaces: NetworkInterface[]; pendingProbes: LatencyProbe[]; running: boolean; publicRunning: Array<'ipv4' | 'ipv6'>; latencyPolling: boolean; onRefresh: () => void; onRefreshPublic: (version: 'ipv4' | 'ipv6') => void }) {
   const probes = result?.probes?.length ? result.probes : pendingProbes
   const domestic = probes.filter(item => item.region === '国内')
   const international = probes.filter(item => item.region === '国际')
-  const initialLatencyRunning = running && !result
   const online = Boolean(result?.ipv4.available || result?.ipv6.available || result?.probes?.some(item => item.status === 'ok'))
   return <div className="home-page">
     <section className="card overview-hero">
@@ -190,8 +292,8 @@ function HomePage({ result, interfaces, pendingProbes, running, publicRunning, l
 
     <section className="card latency-section">
       <div className="section-title"><h3>网站延迟</h3></div>
-      <LatencyGroup probes={domestic} running={latencyRunning} initialRunning={initialLatencyRunning} onRefresh={onRefreshLatency}/>
-      <LatencyGroup probes={international} running={latencyRunning} initialRunning={initialLatencyRunning} onRefresh={onRefreshLatency}/>
+      <LatencyGroup probes={domestic} polling={latencyPolling}/>
+      <LatencyGroup probes={international} polling={latencyPolling}/>
     </section>
 
     <NetworkInterfaces items={interfaces}/>
@@ -216,13 +318,13 @@ function sourceHostname(value?: string) {
   catch { return value }
 }
 
-function LatencyGroup({ probes, running, initialRunning, onRefresh }: { probes: LatencyProbe[]; running: string[]; initialRunning: boolean; onRefresh: (id: string) => void }) {
-  return <div className="latency-group"><div className="latency-grid">{probes.map(probe => <LatencyCard key={probe.id} probe={probe} running={initialRunning || running.includes(probe.id)} onRefresh={() => onRefresh(probe.id)}/>)}</div></div>
+function LatencyGroup({ probes, polling }: { probes: LatencyProbe[]; polling: boolean }) {
+  return <div className="latency-group"><div className="latency-grid">{probes.map(probe => <LatencyCard key={probe.id} probe={probe} running={polling && probe.status === 'pending'}/>)}</div></div>
 }
 
-function LatencyCard({ probe, running, onRefresh }: { probe: LatencyProbe; running: boolean; onRefresh: () => void }) {
+function LatencyCard({ probe, running }: { probe: LatencyProbe; running: boolean }) {
   const latencyClass = probe.status === 'pending' ? 'pending' : probe.status !== 'ok' ? 'failed' : (probe.latencyMs || 0) < 100 ? 'fast' : (probe.latencyMs || 0) < 250 ? 'medium' : 'slow'
-  return <button type="button" className={`latency-card ${latencyClass} ${running ? 'running' : ''}`} title={`${probe.url || probe.host}${probe.statusCode ? ` · HTTP ${probe.statusCode}` : ''}`} aria-label={`${probe.name}，${probe.region}，${running ? '正在测试' : '点击重新测试'}`} onClick={onRefresh} disabled={running}><ServiceIcon id={probe.id}/><div className="service-copy"><strong>{probe.name}</strong><span className={`region-label ${probe.region === '国内' ? 'domestic' : 'international'}`}>{probe.region}</span></div><div className="latency-value">{running ? <span className="latency-pending"><span className="spinner dark"/><span>测试中</span></span> : probe.status === 'pending' ? <span className="latency-waiting">待测试</span> : probe.status === 'ok' ? <><b>{probe.latencyMs}</b><small>ms</small></> : <b>{probe.status === 'timeout' ? 'TIMEOUT' : 'FAILED'}</b>}</div></button>
+  return <div className={`latency-card ${latencyClass} ${running ? 'running' : ''}`} title={`${probe.url || probe.host}${probe.statusCode ? ` · HTTP ${probe.statusCode}` : ''}`} aria-label={`${probe.name}，${probe.region}，${running ? '正在测试' : '轮询结果'}`}><ServiceIcon id={probe.id}/><div className="service-copy"><strong>{probe.name}</strong><span className={`region-label ${probe.region === '国内' ? 'domestic' : 'international'}`}>{probe.region}</span></div><div className="latency-value">{running ? <span className="latency-pending"><span className="spinner dark"/><span>测试中</span></span> : probe.status === 'pending' ? <span className="latency-waiting">已暂停</span> : probe.status === 'ok' ? <><b>{probe.latencyMs}</b><small>ms</small></> : <b>{probe.status === 'timeout' ? 'TIMEOUT' : 'FAILED'}</b>}</div></div>
 }
 
 function ServiceIcon({ id }: { id: string }) {
@@ -345,8 +447,6 @@ function SettingsPage({ value, onSaved, onError }: { value: BootstrapData; onSav
   const [ipv6Sites, setIPv6Sites] = useState(value.diagnostics.ipv6Sites.join('\n'))
   const [aaaaDomain, setAAAADomain] = useState(value.diagnostics.aaaaDomain)
   const [largeUrl, setLargeURL] = useState(value.diagnostics.ipv6LargeUrl)
-  const [saveState, setSaveState] = useState<'idle' | 'pending' | 'saving' | 'saved' | 'error'>('idle')
-  const [saveMessage, setSaveMessage] = useState('')
   const initialRender = useRef(true)
   const saveRevision = useRef(0)
   const saveQueue = useRef<Promise<void>>(Promise.resolve())
@@ -367,8 +467,6 @@ function SettingsPage({ value, onSaved, onError }: { value: BootstrapData; onSav
     const revision = ++saveRevision.current
     const delay = immediateSave.current ? 0 : 700
     immediateSave.current = false
-    setSaveState('pending')
-    setSaveMessage('')
     const timer = window.setTimeout(() => {
       let request
       try {
@@ -387,25 +485,17 @@ function SettingsPage({ value, onSaved, onError }: { value: BootstrapData; onSav
         }
       } catch (error) {
         if (revision === saveRevision.current) {
-          setSaveState('error')
-          setSaveMessage(errorMessage(error))
+          onErrorRef.current(errorMessage(error))
         }
         return
       }
       const persist = async () => {
-        if (revision === saveRevision.current) setSaveState('saving')
         try {
           const stored = await api().SaveSettings(request)
           onSavedRef.current(stored)
-          if (revision === saveRevision.current) {
-            setSaveState('saved')
-            setSaveMessage('')
-          }
         } catch (error) {
           if (revision === saveRevision.current) {
             const message = errorMessage(error)
-            setSaveState('error')
-            setSaveMessage(message)
             onErrorRef.current(message)
           }
         }
@@ -415,10 +505,8 @@ function SettingsPage({ value, onSaved, onError }: { value: BootstrapData; onSav
     return () => window.clearTimeout(timer)
   }, [profile, system, latencyTargets, natServers, ipv4Endpoints, ipv6Endpoints, ipv6Sites, aaaaDomain, largeUrl])
 
-  const saveLabel = saveState === 'saving' ? '正在自动保存…' : saveState === 'pending' ? '等待自动保存…' : saveState === 'saved' ? '已自动保存' : saveState === 'error' ? '自动保存失败' : '修改后自动保存'
-
   return <div className="settings-page">
-    <section className="card settings-overview"><div className="brand-mark large"><Icon name="activity" size={31}/></div><div className="about-copy"><span className="eyebrow">NETWORK TOOLBOX</span><h2>网络工具箱</h2><div className="overview-facts"><span>Go + Wails</span><span>802.1X / EAP-MD5</span><span>Windows DPAPI</span></div></div><div className="settings-save-meta"><span className="version">Version {value.version}</span><span className={`autosave-status ${saveState}`} title={saveMessage}><i/>{saveLabel}</span></div></section>
+    <section className="card settings-overview"><div className="brand-mark large"><Icon name="activity" size={31}/></div><div className="about-copy"><span className="eyebrow">NETWORK TOOLBOX</span><h2>网络工具箱</h2><div className="overview-facts"><span>Go + Wails</span><span>802.1X / EAP-MD5</span><span>Windows DPAPI</span></div></div><div className="settings-save-meta"><span className="version">Version {value.version}</span></div></section>
 
     <details className="card settings-disclosure">
       <summary><div><span className="disclosure-icon blue"><Icon name="activity" size={19}/></span><span><strong>网络与启动</strong><small>{system.priorityMode === 'ethernet' ? '以太网优先' : system.priorityMode === 'wifi' ? 'Wi-Fi 优先' : '系统自动选择'} · 自动认证{system.autoAuthenticate ? '已开启' : '已关闭'}</small></span></div><span className="summary-side">配置 <Icon name="chevron" size={16}/></span></summary>

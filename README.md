@@ -11,12 +11,12 @@
 - 锐捷 802.1X / EAP-MD5 单次认证、注销与状态日志
 - 启动时识别已有认证，断线后由低功耗后台任务自动重试（最多 3 次）
 - Npcap 有线网卡识别，以及物理、虚拟、隧道等网卡的分类概览与优先级管理
-- 可自定义的网站 HTTP GET 首响应测试、NAT 类型和 IPv6 连通性检测
+- 可自定义的网站 HTTP HEAD 滚动延迟测试、NAT 类型和 IPv6 连通性检测
 - 可选系统托盘驻留；关闭主界面后释放 WebView，仅保留轻量后台进程
 
 ## 下载
 
-请从仓库的 [Releases](../../releases) 页面下载 `NetToolbox-v0.1.0-windows-x64.zip`，解压后运行其中的 `NetToolbox.exe`。
+请从仓库的 [Releases](../../releases) 页面下载 `NetToolbox-v0.1.1-windows-x64.zip`，解压后运行其中的 `NetToolbox.exe`。
 
 ## 运行要求
 - [Npcap](https://npcap.com/#download)

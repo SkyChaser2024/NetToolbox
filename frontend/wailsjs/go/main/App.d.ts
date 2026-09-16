@@ -8,6 +8,8 @@ export function Bootstrap():Promise<main.BootstrapData>;
 
 export function CancelAuthentication():Promise<void>;
 
+export function CancelLatencyChecks():Promise<void>;
+
 export function CheckIPv6():Promise<networkdiag.IPv6Result>;
 
 export function CheckLatency(arg1:string):Promise<networkdiag.LatencyProbe>;

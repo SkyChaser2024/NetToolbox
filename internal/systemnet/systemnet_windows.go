@@ -23,6 +23,7 @@ const (
 
 type NetworkInterface struct {
 	Index         int      `json:"index"`
+	IPv6Index     int      `json:"-"`
 	AdapterID     string   `json:"-"`
 	Name          string   `json:"name"`
 	Description   string   `json:"description"`
@@ -68,6 +69,7 @@ func List() ([]NetworkInterface, error) {
 			}
 			result = append(result, NetworkInterface{
 				Index:         int(current.IfIndex),
+				IPv6Index:     int(current.Ipv6IfIndex),
 				AdapterID:     windows.BytePtrToString(current.AdapterName),
 				Name:          name,
 				Description:   description,
@@ -122,24 +124,45 @@ func ApplyPriority(mode string) error {
 		return errors.New("未发现可调整的以太网或 Wi-Fi 接口")
 	}
 
-	lines := []string{"$ErrorActionPreference = 'Stop'"}
+	lines := []string{
+		"$ErrorActionPreference = 'Stop'",
+		"$ProgressPreference = 'SilentlyContinue'",
+		"[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)",
+		"$adjusted = 0",
+	}
+	commandsAdded := false
 	for _, item := range interfaces {
 		if !item.Physical || (item.Kind != PriorityEthernet && item.Kind != PriorityWiFi) {
 			continue
 		}
 		if mode == PriorityAutomatic {
-			lines = append(lines, metricCommand(item.Index, "IPv4", true, 0), metricCommand(item.Index, "IPv6", true, 0))
+			if item.Index > 0 {
+				lines = append(lines, metricCommand(item.Index, "IPv4", true, 0))
+				commandsAdded = true
+			}
+			if item.IPv6Index > 0 {
+				lines = append(lines, metricCommand(item.IPv6Index, "IPv6", true, 0))
+				commandsAdded = true
+			}
 			continue
 		}
 		metric := 50
 		if item.Kind == mode {
 			metric = 10
 		}
-		lines = append(lines, metricCommand(item.Index, "IPv4", false, metric), metricCommand(item.Index, "IPv6", false, metric))
+		if item.Index > 0 {
+			lines = append(lines, metricCommand(item.Index, "IPv4", false, metric))
+			commandsAdded = true
+		}
+		if item.IPv6Index > 0 {
+			lines = append(lines, metricCommand(item.IPv6Index, "IPv6", false, metric))
+			commandsAdded = true
+		}
 	}
-	if len(lines) == 1 {
+	if !commandsAdded {
 		return errors.New("未发现可调整的物理以太网或 Wi-Fi 接口")
 	}
+	lines = append(lines, "if ($adjusted -eq 0) { throw '未找到可调整的 Windows IP 接口' }")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -181,10 +204,11 @@ func interfaceKind(value uint32, virtual bool) string {
 }
 
 func metricCommand(index int, family string, automatic bool, metric int) string {
+	lookup := fmt.Sprintf("$ipInterface = @(Get-NetIPInterface -InterfaceIndex %d -AddressFamily %s -ErrorAction SilentlyContinue)", index, family)
 	if automatic {
-		return fmt.Sprintf("Set-NetIPInterface -InterfaceIndex %d -AddressFamily %s -AutomaticMetric Enabled", index, family)
+		return fmt.Sprintf("%s\nif ($ipInterface.Count -gt 0) { $ipInterface | Set-NetIPInterface -AutomaticMetric Enabled -ErrorAction Stop; $adjusted += $ipInterface.Count }", lookup)
 	}
-	return fmt.Sprintf("Set-NetIPInterface -InterfaceIndex %d -AddressFamily %s -AutomaticMetric Disabled -InterfaceMetric %d", index, family, metric)
+	return fmt.Sprintf("%s\nif ($ipInterface.Count -gt 0) { $ipInterface | Set-NetIPInterface -AutomaticMetric Disabled -InterfaceMetric %d -ErrorAction Stop; $adjusted += $ipInterface.Count }", lookup, metric)
 }
 
 func powershellPath() (string, error) {

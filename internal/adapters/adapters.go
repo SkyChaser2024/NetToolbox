@@ -40,11 +40,21 @@ type systemInterface struct {
 }
 
 func List() Result {
+	return listWithSystemInterfaces(listSystemInterfaces())
+}
+
+// ListWithInterfaces reuses a Windows adapter snapshot already collected by
+// the caller. Startup needs the same metadata for both the UI and Npcap
+// matching, so this avoids a second GetAdaptersAddresses allocation and scan.
+func ListWithInterfaces(items []systemnet.NetworkInterface) Result {
+	return listWithSystemInterfaces(systemInterfaces(items))
+}
+
+func listWithSystemInterfaces(system []systemInterface) Result {
 	devices, err := pcap.FindAllDevs()
 	if err != nil {
 		return Result{Adapters: make([]Adapter, 0), Error: fmt.Sprintf("未检测到可用的 Npcap: %v", err)}
 	}
-	system := listSystemInterfaces()
 	result := Result{NpcapAvailable: true, Adapters: make([]Adapter, 0, len(devices))}
 	for _, device := range devices {
 		adapter := Adapter{DeviceName: device.Name, Description: device.Description, Up: true}
@@ -99,21 +109,7 @@ func List() Result {
 func listSystemInterfaces() []systemInterface {
 	metadata, metadataErr := systemnet.List()
 	if metadataErr == nil {
-		result := make([]systemInterface, 0, len(metadata))
-		for _, item := range metadata {
-			addresses := make(map[string]struct{}, len(item.IPv4)+len(item.IPv6))
-			for _, address := range item.IPv4 {
-				addresses[address] = struct{}{}
-			}
-			for _, address := range item.IPv6 {
-				addresses[address] = struct{}{}
-			}
-			result = append(result, systemInterface{
-				name: item.Name, mac: item.MAC, up: item.Up, addrs: addresses,
-				adapterID: item.AdapterID, index: item.Index, kind: item.Kind,
-			})
-		}
-		return result
+		return systemInterfaces(metadata)
 	}
 
 	interfaces, _ := net.Interfaces()
@@ -128,6 +124,24 @@ func listSystemInterfaces() []systemInterface {
 			}
 		}
 		result = append(result, entry)
+	}
+	return result
+}
+
+func systemInterfaces(items []systemnet.NetworkInterface) []systemInterface {
+	result := make([]systemInterface, 0, len(items))
+	for _, item := range items {
+		addresses := make(map[string]struct{}, len(item.IPv4)+len(item.IPv6))
+		for _, address := range item.IPv4 {
+			addresses[address] = struct{}{}
+		}
+		for _, address := range item.IPv6 {
+			addresses[address] = struct{}{}
+		}
+		result = append(result, systemInterface{
+			name: item.Name, mac: item.MAC, up: item.Up, addrs: addresses,
+			adapterID: item.AdapterID, index: item.Index, kind: item.Kind,
+		})
 	}
 	return result
 }

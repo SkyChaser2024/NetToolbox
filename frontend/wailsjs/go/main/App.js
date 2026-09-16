@@ -10,6 +10,10 @@ export function CancelAuthentication() {
   return window['go']['main']['App']['CancelAuthentication']();
 }
 
+export function CancelLatencyChecks() {
+  return window['go']['main']['App']['CancelLatencyChecks']();
+}
+
 export function CheckIPv6() {
   return window['go']['main']['App']['CheckIPv6']();
 }
