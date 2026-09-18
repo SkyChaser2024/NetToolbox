@@ -50,6 +50,12 @@ jobs:
       - name: Build frontend
         run: npm --prefix frontend run build
 
+      - name: Test Go packages
+        env:
+          NETTOOLBOX_PING_INTEGRATION: '1'
+          NETTOOLBOX_TRACE_INTEGRATION: '1'
+        run: go test ./...
+
       - name: Vet Go code
         run: go vet ./...
 

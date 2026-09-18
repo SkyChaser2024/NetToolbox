@@ -132,19 +132,6 @@ func DefaultSystemPreferences() SystemPreferences {
 	return SystemPreferences{PriorityMode: "automatic", CloseToTray: true}
 }
 
-func (s *Store) Load() (Profile, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	doc, err := s.loadDocument()
-	if errors.Is(err, os.ErrNotExist) {
-		return DefaultProfile(), nil
-	}
-	if err != nil {
-		return Profile{}, err
-	}
-	return profileFromDocument(doc), nil
-}
-
 // LoadConfiguration reads the settings file once so callers receive a
 // consistent snapshot of all related settings.
 func (s *Store) LoadConfiguration() (Profile, DiagnosticSettings, SystemPreferences, error) {
@@ -234,29 +221,6 @@ func (s *Store) Save(profile Profile, newPassword string) error {
 	profile.PasswordSet = doc.ProtectedPassword != ""
 	doc.Profile = profile
 	return s.writeDocument(doc)
-}
-
-func (s *Store) SaveDiagnostics(value DiagnosticSettings) (DiagnosticSettings, error) {
-	normalized, err := NormalizeDiagnostics(value)
-	if err != nil {
-		return DiagnosticSettings{}, err
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	doc, err := s.loadDocument()
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return DiagnosticSettings{}, err
-	}
-	if doc.Version == 0 {
-		doc.Profile = DefaultProfile()
-	}
-	doc.System = systemFromDocument(doc)
-	doc.Version = currentVersion
-	doc.Diagnostics = normalized
-	if err := s.writeDocument(doc); err != nil {
-		return DiagnosticSettings{}, err
-	}
-	return normalized, nil
 }
 
 func (s *Store) SaveConfiguration(profile Profile, diagnostics DiagnosticSettings, system SystemPreferences) (Profile, DiagnosticSettings, SystemPreferences, error) {

@@ -151,6 +151,28 @@ export namespace main {
 		    return a;
 		}
 	}
+	export class PingRequest {
+	    sessionId: string;
+	    target: string;
+	    protocol: string;
+	    count: number;
+	    timeoutMs: number;
+	    intervalMs: number;
+
+	    static createFrom(source: any = {}) {
+	        return new PingRequest(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.sessionId = source["sessionId"];
+	        this.target = source["target"];
+	        this.protocol = source["protocol"];
+	        this.count = source["count"];
+	        this.timeoutMs = source["timeoutMs"];
+	        this.intervalMs = source["intervalMs"];
+	    }
+	}
 	export class SettingsRequest {
 	    profile: settings.Profile;
 	    diagnostics: settings.DiagnosticSettings;
@@ -220,6 +242,28 @@ export namespace main {
 		    }
 		    return a;
 		}
+	}
+	export class TraceRequest {
+	    sessionId: string;
+	    target: string;
+	    protocol: string;
+	    maxHops: number;
+	    timeoutMs: number;
+	    resolveHostnames: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new TraceRequest(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.sessionId = source["sessionId"];
+	        this.target = source["target"];
+	        this.protocol = source["protocol"];
+	        this.maxHops = source["maxHops"];
+	        this.timeoutMs = source["timeoutMs"];
+	        this.resolveHostnames = source["resolveHostnames"];
+	    }
 	}
 
 }

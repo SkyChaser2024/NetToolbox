@@ -50,7 +50,7 @@ func runBackground(icon []byte) error {
 			trimBackgroundWorkingSet()
 		}
 	}()
-	go monitorAuthentication(ctx, store, func(string) {}, func() {
+	go monitorAuthentication(ctx, store, tray.SetTooltip, func() {
 		cancel()
 		tray.Quit()
 	})

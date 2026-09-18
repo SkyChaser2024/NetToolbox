@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"strings"
 	"sync"
@@ -131,6 +132,8 @@ func probeIPv6Sites(ctx context.Context, sites []string) []WebsiteProbeResult {
 	if len(sites) > maxConcurrentLatencyTargets {
 		sites = sites[:maxConcurrentLatencyTargets]
 	}
+	client, transport := newNetworkHTTPClient("tcp6", 6*time.Second)
+	defer transport.CloseIdleConnections()
 	results := make([]WebsiteProbeResult, len(sites))
 	var wait sync.WaitGroup
 	wait.Add(len(sites))
@@ -139,14 +142,14 @@ func probeIPv6Sites(ctx context.Context, sites []string) []WebsiteProbeResult {
 			defer wait.Done()
 			probeContext, cancel := context.WithTimeout(ctx, 6*time.Second)
 			defer cancel()
-			results[index] = probeIPv6Website(probeContext, site)
+			results[index] = probeIPv6Website(probeContext, client, site)
 		}()
 	}
 	wait.Wait()
 	return results
 }
 
-func probeIPv6Website(ctx context.Context, endpoint string) WebsiteProbeResult {
+func probeIPv6Website(ctx context.Context, client *http.Client, endpoint string) WebsiteProbeResult {
 	result := WebsiteProbeResult{URL: endpoint, Host: endpoint}
 	parsed, err := url.Parse(endpoint)
 	if err != nil || parsed.Hostname() == "" {
@@ -154,29 +157,19 @@ func probeIPv6Website(ctx context.Context, endpoint string) WebsiteProbeResult {
 		return result
 	}
 	result.Host = parsed.Hostname()
-	dialer := &net.Dialer{Timeout: 4 * time.Second}
-	transport := &http.Transport{
-		Proxy: nil,
-		DialContext: func(dialCtx context.Context, _, address string) (net.Conn, error) {
-			connection, dialErr := dialer.DialContext(dialCtx, "tcp6", address)
-			if dialErr == nil {
-				host, _, splitErr := net.SplitHostPort(connection.RemoteAddr().String())
-				if splitErr == nil {
-					result.Address = host
-				}
-			}
-			return connection, dialErr
-		},
-		TLSHandshakeTimeout: 4 * time.Second,
-		DisableKeepAlives:   true,
-	}
-	defer transport.CloseIdleConnections()
-	client := &http.Client{Transport: transport, Timeout: 6 * time.Second}
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		result.Error = err.Error()
 		return result
 	}
+	request = request.WithContext(httptrace.WithClientTrace(request.Context(), &httptrace.ClientTrace{
+		GotConn: func(info httptrace.GotConnInfo) {
+			host, _, splitErr := net.SplitHostPort(info.Conn.RemoteAddr().String())
+			if splitErr == nil {
+				result.Address = host
+			}
+		},
+	}))
 	request.Header.Set("User-Agent", appmeta.UserAgent)
 	started := time.Now()
 	response, err := client.Do(request)
@@ -196,10 +189,12 @@ func probeFirstIP(ctx context.Context, network string, endpoints []string) IPPro
 	if len(endpoints) == 0 {
 		return IPProbeResult{Error: "未配置检测端点"}
 	}
+	client, transport := newNetworkHTTPClient(network, 6*time.Second)
+	defer transport.CloseIdleConnections()
 	var last IPProbeResult
 	for _, endpoint := range endpoints {
 		probeContext, cancel := context.WithTimeout(ctx, 4*time.Second)
-		last = probeIP(probeContext, network, endpoint)
+		last = probeIP(probeContext, client, network, endpoint)
 		cancel()
 		if last.Available {
 			return last
@@ -211,18 +206,7 @@ func probeFirstIP(ctx context.Context, network string, endpoints []string) IPPro
 	return last
 }
 
-func probeIP(ctx context.Context, network, endpoint string) IPProbeResult {
-	dialer := &net.Dialer{Timeout: 4 * time.Second}
-	transport := &http.Transport{
-		Proxy: nil,
-		DialContext: func(dialCtx context.Context, _, address string) (net.Conn, error) {
-			return dialer.DialContext(dialCtx, network, address)
-		},
-		TLSHandshakeTimeout: 4 * time.Second,
-		DisableKeepAlives:   true,
-	}
-	defer transport.CloseIdleConnections()
-	client := &http.Client{Transport: transport, Timeout: 6 * time.Second}
+func probeIP(ctx context.Context, client *http.Client, network, endpoint string) IPProbeResult {
 	started := time.Now()
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
@@ -249,17 +233,8 @@ func probeIP(ctx context.Context, network, endpoint string) IPProbeResult {
 }
 
 func probeIPv6Payload(ctx context.Context, endpoint string) URLProbeResult {
-	dialer := &net.Dialer{Timeout: 4 * time.Second}
-	transport := &http.Transport{
-		Proxy: nil,
-		DialContext: func(dialCtx context.Context, _, address string) (net.Conn, error) {
-			return dialer.DialContext(dialCtx, "tcp6", address)
-		},
-		TLSHandshakeTimeout: 4 * time.Second,
-		DisableKeepAlives:   true,
-	}
+	client, transport := newNetworkHTTPClient("tcp6", 8*time.Second)
 	defer transport.CloseIdleConnections()
-	client := &http.Client{Transport: transport, Timeout: 8 * time.Second}
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return URLProbeResult{Error: err.Error()}
@@ -278,6 +253,19 @@ func probeIPv6Payload(ctx context.Context, endpoint string) URLProbeResult {
 		return URLProbeResult{LatencyMs: time.Since(started).Milliseconds(), BytesRead: count, Error: err.Error()}
 	}
 	return URLProbeResult{Available: true, LatencyMs: time.Since(started).Milliseconds(), BytesRead: count}
+}
+
+func newNetworkHTTPClient(network string, timeout time.Duration) (*http.Client, *http.Transport) {
+	dialer := &net.Dialer{Timeout: 4 * time.Second}
+	transport := &http.Transport{
+		Proxy: nil,
+		DialContext: func(dialCtx context.Context, _, address string) (net.Conn, error) {
+			return dialer.DialContext(dialCtx, network, address)
+		},
+		TLSHandshakeTimeout: 4 * time.Second,
+		DisableKeepAlives:   true,
+	}
+	return &http.Client{Transport: transport, Timeout: timeout}, transport
 }
 
 func parseIPAddress(body []byte) string {

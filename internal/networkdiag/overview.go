@@ -71,6 +71,7 @@ const (
 	maxConcurrentPublicInfo     = 4
 	maxPublicInfoResponseBytes  = 64 * 1024
 	maxConcurrentLatencyTargets = 16
+	publicInfoDetailedGrace     = 1500 * time.Millisecond
 )
 
 func CheckOverview(ctx context.Context, ipv4Endpoints, ipv6Endpoints []string) OverviewResult {
@@ -89,13 +90,8 @@ func CheckOverview(ctx context.Context, ipv4Endpoints, ipv6Endpoints []string) O
 	return result
 }
 
-func CheckLatency(ctx context.Context, id string, targets []LatencyTarget) LatencyProbe {
-	for _, target := range targets {
-		if target.ID == id {
-			return probeHTTP(ctx, target)
-		}
-	}
-	return LatencyProbe{ID: id, Status: "failed", Error: "未知的连接测试目标"}
+func CheckLatencyTarget(ctx context.Context, target LatencyTarget) LatencyProbe {
+	return probeHTTP(ctx, target)
 }
 
 // CheckPublicNetworkInfo refreshes one address family without running the
@@ -199,7 +195,11 @@ func fetchFirstPublicInfo(ctx context.Context, client *http.Client, network stri
 				}
 				if fallback == nil {
 					fallback = &result.info
-					graceTimer = time.NewTimer(600 * time.Millisecond)
+					// Plain-text providers are fast and reliable for the address,
+					// but cannot supply ISP, ASN or location. Keep them as a
+					// fallback while giving structured providers enough time to
+					// complete, especially on higher-latency networks.
+					graceTimer = time.NewTimer(publicInfoDetailedGrace)
 					grace = graceTimer.C
 				}
 			} else {
@@ -234,7 +234,7 @@ func withPublicInfoCompleteness(info PublicNetworkInfo) PublicNetworkInfo {
 		missing = append(missing, "位置")
 	}
 	if len(missing) > 0 {
-		info.Error = "公网地址已获取，但详细信息暂时不完整：缺少 " + strings.Join(missing, "、")
+		info.Error = "公网地址已获取；详细信息源暂不可用，刷新时会自动重试：缺少 " + strings.Join(missing, "、")
 	}
 	return info
 }

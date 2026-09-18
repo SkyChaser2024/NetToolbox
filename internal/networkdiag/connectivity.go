@@ -26,36 +26,36 @@ var connectivityProbes = []connectivityProbe{
 // typical unauthenticated captive portal and therefore avoids mistaking Wi-Fi
 // connectivity for an authenticated Ethernet connection.
 func InterfaceOnline(ctx context.Context, addresses []string) bool {
-	localIPs := usableLocalIPs(addresses)
-	if len(localIPs) == 0 {
-		return false
-	}
-	for _, localIP := range localIPs {
-		for _, endpoint := range connectivityProbes {
-			if probeFromAddress(ctx, localIP, endpoint) {
-				return true
-			}
-			if ctx.Err() != nil {
-				return false
-			}
-		}
-	}
-	return false
-}
-
-func usableLocalIPs(addresses []string) []net.IP {
-	result := make([]net.IP, 0, len(addresses))
 	for _, value := range addresses {
 		ip := net.ParseIP(value)
 		if ip == nil || ip.IsUnspecified() || ip.IsLoopback() || ip.IsLinkLocalUnicast() {
 			continue
 		}
-		result = append(result, ip)
+		if probeAllFromAddress(ctx, ip) {
+			return true
+		}
+		if ctx.Err() != nil {
+			return false
+		}
 	}
-	return result
+	return false
 }
 
-func probeFromAddress(ctx context.Context, localIP net.IP, endpoint connectivityProbe) bool {
+func probeAllFromAddress(ctx context.Context, localIP net.IP) bool {
+	client, transport := connectivityClient(localIP)
+	defer transport.CloseIdleConnections()
+	for _, endpoint := range connectivityProbes {
+		if probeConnectivityEndpoint(ctx, client, endpoint) {
+			return true
+		}
+		if ctx.Err() != nil {
+			return false
+		}
+	}
+	return false
+}
+
+func connectivityClient(localIP net.IP) (*http.Client, *http.Transport) {
 	network := "tcp6"
 	if localIP.To4() != nil {
 		network = "tcp4"
@@ -72,7 +72,6 @@ func probeFromAddress(ctx context.Context, localIP net.IP, endpoint connectivity
 		TLSHandshakeTimeout: 1400 * time.Millisecond,
 		DisableKeepAlives:   true,
 	}
-	defer transport.CloseIdleConnections()
 	client := &http.Client{
 		Transport: transport,
 		Timeout:   1500 * time.Millisecond,
@@ -80,6 +79,10 @@ func probeFromAddress(ctx context.Context, localIP net.IP, endpoint connectivity
 			return http.ErrUseLastResponse
 		},
 	}
+	return client, transport
+}
+
+func probeConnectivityEndpoint(ctx context.Context, client *http.Client, endpoint connectivityProbe) bool {
 	request, err := http.NewRequestWithContext(ctx, http.MethodHead, endpoint.URL, nil)
 	if err != nil {
 		return false

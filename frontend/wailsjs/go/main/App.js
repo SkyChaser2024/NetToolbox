@@ -14,6 +14,14 @@ export function CancelLatencyChecks() {
   return window['go']['main']['App']['CancelLatencyChecks']();
 }
 
+export function CancelPing(arg1) {
+  return window['go']['main']['App']['CancelPing'](arg1);
+}
+
+export function CancelTraceroute(arg1) {
+  return window['go']['main']['App']['CancelTraceroute'](arg1);
+}
+
 export function CheckIPv6() {
   return window['go']['main']['App']['CheckIPv6']();
 }
@@ -42,10 +50,6 @@ export function Connect(arg1) {
   return window['go']['main']['App']['Connect'](arg1);
 }
 
-export function Disconnect() {
-  return window['go']['main']['App']['Disconnect']();
-}
-
 export function Logout() {
   return window['go']['main']['App']['Logout']();
 }
@@ -60,4 +64,12 @@ export function RefreshAdapters() {
 
 export function SaveSettings(arg1) {
   return window['go']['main']['App']['SaveSettings'](arg1);
+}
+
+export function StartPing(arg1) {
+  return window['go']['main']['App']['StartPing'](arg1);
+}
+
+export function StartTraceroute(arg1) {
+  return window['go']['main']['App']['StartTraceroute'](arg1);
 }

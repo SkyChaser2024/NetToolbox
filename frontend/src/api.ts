@@ -152,6 +152,89 @@ export interface IPv6Result {
   }
 }
 
+export type TraceProtocol = 'auto' | 'ipv4' | 'ipv6'
+
+export interface TraceRequest {
+  sessionId: string
+  target: string
+  protocol: TraceProtocol
+  maxHops: number
+  timeoutMs: number
+  resolveHostnames: boolean
+}
+
+export interface TraceProbe {
+  status: 'reply' | 'timeout' | 'unreachable'
+  address?: string
+  hostname?: string
+  latencyMs?: number
+  reached?: boolean
+}
+
+export interface TraceHop {
+  number: number
+  status: 'reply' | 'timeout' | 'unreachable' | 'destination'
+  probes: TraceProbe[]
+  averageMs?: number
+  reached?: boolean
+}
+
+export interface TraceEvent {
+  sessionId: string
+  type: 'started' | 'hop' | 'completed' | 'cancelled' | 'error'
+  target?: string
+  address?: string
+  protocol?: 'ipv4' | 'ipv6'
+  hop?: TraceHop
+  status?: 'reached' | 'unreachable' | 'max_hops' | 'cancelled' | 'error'
+  reached?: boolean
+  hopCount?: number
+  durationMs?: number
+  error?: string
+}
+
+export interface PingRequest {
+  sessionId: string
+  target: string
+  protocol: TraceProtocol
+  count: number
+  timeoutMs: number
+  intervalMs: number
+}
+
+export interface PingReply {
+  sequence: number
+  status: 'reply' | 'timeout' | 'unreachable'
+  address?: string
+  latencyMs?: number
+}
+
+export interface PingSummary {
+  target: string
+  address: string
+  protocol: 'ipv4' | 'ipv6'
+  status: string
+  sent: number
+  received: number
+  lost: number
+  lossPercent: number
+  minMs?: number
+  averageMs?: number
+  maxMs?: number
+  durationMs?: number
+}
+
+export interface PingEvent {
+  sessionId: string
+  type: 'started' | 'reply' | 'completed' | 'cancelled' | 'error'
+  target?: string
+  address?: string
+  protocol?: 'ipv4' | 'ipv6'
+  reply?: PingReply
+  summary?: PingSummary
+  error?: string
+}
+
 export interface PublicNetworkInfo {
   available: boolean
   address?: string
@@ -201,7 +284,6 @@ interface BackendAPI {
   Connect(request: AuthRequest): Promise<void>
   Logout(): Promise<void>
   CancelAuthentication(): Promise<void>
-  Disconnect(): Promise<void>
   SaveSettings(value: SettingsRequest): Promise<SettingsResult>
   CheckOverview(): Promise<OverviewResult>
   CheckPublicIPv4(): Promise<PublicNetworkInfo>
@@ -210,6 +292,10 @@ interface BackendAPI {
   CancelLatencyChecks(): Promise<void>
   CheckNAT(): Promise<NATResult>
   CheckIPv6(): Promise<IPv6Result>
+  StartPing(request: PingRequest): Promise<void>
+  CancelPing(sessionId: string): Promise<void>
+  StartTraceroute(request: TraceRequest): Promise<void>
+  CancelTraceroute(sessionId: string): Promise<void>
   OpenLink(url: string): Promise<void>
 }
 
@@ -254,7 +340,6 @@ const previewAPI: BackendAPI = {
   async Connect() { throw new Error('请在 Wails 桌面应用中使用认证功能') },
   async Logout() {},
   async CancelAuthentication() {},
-  async Disconnect() {},
   async SaveSettings(value) { return {...value, networkInterfaces: []} },
   async CheckOverview() { throw new Error('请在 Wails 桌面应用中查看网络概览') },
   async CheckPublicIPv4() { throw new Error('请在 Wails 桌面应用中查看网络概览') },
@@ -263,6 +348,10 @@ const previewAPI: BackendAPI = {
   async CancelLatencyChecks() {},
   async CheckNAT() { throw new Error('请在 Wails 桌面应用中运行网络检测') },
   async CheckIPv6() { throw new Error('请在 Wails 桌面应用中运行网络检测') },
+  async StartPing() { throw new Error('请在 Wails 桌面应用中运行 Ping 测试') },
+  async CancelPing() {},
+  async StartTraceroute() { throw new Error('请在 Wails 桌面应用中运行路由追踪') },
+  async CancelTraceroute() {},
   async OpenLink(url: string) { window.open(url, '_blank', 'noopener,noreferrer') },
 }
 

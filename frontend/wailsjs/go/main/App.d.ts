@@ -10,6 +10,10 @@ export function CancelAuthentication():Promise<void>;
 
 export function CancelLatencyChecks():Promise<void>;
 
+export function CancelPing(arg1:string):Promise<void>;
+
+export function CancelTraceroute(arg1:string):Promise<void>;
+
 export function CheckIPv6():Promise<networkdiag.IPv6Result>;
 
 export function CheckLatency(arg1:string):Promise<networkdiag.LatencyProbe>;
@@ -24,8 +28,6 @@ export function CheckPublicIPv6():Promise<networkdiag.PublicNetworkInfo>;
 
 export function Connect(arg1:main.AuthRequest):Promise<void>;
 
-export function Disconnect():Promise<void>;
-
 export function Logout():Promise<void>;
 
 export function OpenLink(arg1:string):Promise<void>;
@@ -33,3 +35,7 @@ export function OpenLink(arg1:string):Promise<void>;
 export function RefreshAdapters():Promise<adapters.Result>;
 
 export function SaveSettings(arg1:main.SettingsRequest):Promise<main.SettingsResult>;
+
+export function StartPing(arg1:main.PingRequest):Promise<void>;
+
+export function StartTraceroute(arg1:main.TraceRequest):Promise<void>;
