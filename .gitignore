@@ -2,6 +2,10 @@
 /build/bin/
 /frontend/dist/
 /frontend/node_modules/
+*.tsbuildinfo
+
+# Local browser harnesses
+/frontend/tests/lifecycle-preview.*
 
 # Local configuration and secrets
 .env

@@ -1,0 +1,562 @@
+.trace-table {
+  min-width: 760px;
+  overflow: hidden;
+}
+
+.trace-table-head,
+.trace-hop-row {
+  display: grid;
+  grid-template-columns: 52px minmax(170px, 1fr) repeat(3, minmax(60px, 76px)) 66px 82px;
+  align-items: center;
+  column-gap: 10px;
+}
+
+.trace-table-head {
+  min-height: 40px;
+  padding: 0 13px;
+  color: var(--text-3);
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--line);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.trace-table-head span:not(:nth-child(2)) {
+  text-align: center;
+}
+
+.trace-hop-row {
+  position: relative;
+  min-height: 68px;
+  padding: 9px 13px;
+  border-bottom: 1px solid var(--line);
+}
+
+.trace-hop-row:last-of-type {
+  border-bottom: 0;
+}
+
+.trace-hop-row.destination {
+  background: color-mix(in srgb, var(--green-soft) 34%, transparent);
+}
+
+.trace-hop-row.unreachable {
+  background: color-mix(in srgb, var(--red-soft) 30%, transparent);
+}
+
+.trace-hop-number {
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trace-hop-number:before,
+.trace-hop-number:after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  left: 4px;
+  width: 2px;
+  background: var(--line-strong);
+}
+
+.trace-hop-number:before {
+  top: -9px;
+  bottom: calc(50% + 6px);
+}
+
+.trace-hop-number:after {
+  top: calc(50% + 6px);
+  bottom: -9px;
+}
+
+.trace-hop-row:not(.has-incoming) .trace-hop-number:before,
+.trace-hop-row:not(.has-outgoing) .trace-hop-number:after {
+  display: none;
+}
+
+.trace-hop-number i {
+  position: relative;
+  z-index: 1;
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border: 2px solid var(--surface-solid);
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+
+.trace-hop-number b {
+  color: var(--text-2);
+  font:
+    700 11.5px/1 'Cascadia Code',
+    Consolas,
+    monospace;
+}
+
+.trace-hop-row.timeout .trace-hop-number i {
+  background: var(--text-3);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text-3) 15%, transparent);
+}
+
+.trace-hop-row.destination .trace-hop-number i {
+  background: var(--green);
+  box-shadow: 0 0 0 3px var(--green-soft);
+}
+
+.trace-hop-row.unreachable .trace-hop-number i {
+  background: var(--red);
+  box-shadow: 0 0 0 3px var(--red-soft);
+}
+
+.trace-hop-nodes {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.trace-hop-nodes > span {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.trace-node {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trace-node strong,
+.trace-node code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trace-node strong {
+  font-size: 11.5px;
+}
+
+.trace-node code {
+  color: var(--text-2);
+  font:
+    10.5px/1.35 'Cascadia Code',
+    Consolas,
+    monospace;
+}
+
+.trace-probe-time {
+  justify-self: center;
+  min-width: 52px;
+  padding: 5px 6px;
+  color: var(--blue-2);
+  border-radius: 8px;
+  background: var(--blue-soft);
+  font:
+    650 10.5px/1 'Cascadia Code',
+    Consolas,
+    monospace;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.trace-probe-time.timeout {
+  color: var(--text-3);
+  background: var(--surface-muted);
+}
+
+.trace-probe-time.unreachable {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.trace-average {
+  color: var(--text);
+  font:
+    750 11px/1 'Cascadia Code',
+    Consolas,
+    monospace;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.trace-hop-status {
+  justify-self: center;
+  padding: 5px 7px;
+  border-radius: 10px;
+  color: var(--blue);
+  background: var(--blue-soft);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.trace-hop-status.timeout {
+  color: var(--text-3);
+  background: var(--surface-muted);
+}
+
+.trace-hop-status.destination {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.trace-hop-status.unreachable {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.trace-waiting {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: var(--text-3);
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-muted) 45%, transparent);
+  font-size: 11px;
+}
+
+.trace-waiting .spinner.dark {
+  width: 14px;
+  height: 14px;
+  border-width: 1.5px;
+}
+
+.ping-results {
+  padding: 22px 23px 23px;
+  overflow: hidden;
+}
+
+.ping-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ping-metrics > div {
+  min-width: 0;
+  padding: 14px 15px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--surface-muted) 86%, transparent),
+    var(--surface-solid)
+  );
+}
+
+.ping-metrics span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.ping-metrics span i {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 0 4px var(--blue-soft);
+}
+
+.ping-metrics strong {
+  overflow: hidden;
+  font:
+    750 16px/1.15 'Cascadia Code',
+    Consolas,
+    monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ping-metrics small {
+  overflow: hidden;
+  color: var(--text-3);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ping-table {
+  min-width: 620px;
+  overflow: hidden;
+}
+
+.ping-table-head,
+.ping-row {
+  display: grid;
+  grid-template-columns: 64px 94px minmax(180px, 1fr) 86px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+}
+
+.ping-table-head {
+  min-height: 40px;
+  color: var(--text-3);
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ping-table-head span:last-child {
+  text-align: right;
+}
+
+.ping-row {
+  min-height: 50px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ping-row:last-of-type {
+  border-bottom: 0;
+}
+
+.ping-row.timeout {
+  background: color-mix(in srgb, var(--surface-muted) 48%, transparent);
+}
+
+.ping-row.unreachable {
+  background: color-mix(in srgb, var(--red-soft) 30%, transparent);
+}
+
+.ping-row > code {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-2);
+  font:
+    11px/1.4 'Cascadia Code',
+    Consolas,
+    monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ping-reply-status {
+  justify-self: start;
+  padding: 5px 8px;
+  color: var(--green);
+  border-radius: 10px;
+  background: var(--green-soft);
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ping-reply-status.timeout {
+  color: var(--text-3);
+  background: var(--surface-solid);
+}
+
+.ping-reply-status.unreachable {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+/* Diagnostic result polish: preserve density while strengthening scan paths. */
+
+.trace-table-head,
+.ping-table-head {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface-muted) 92%, transparent),
+    var(--surface-muted)
+  );
+}
+
+.trace-hop-row,
+.ping-row {
+  transition:
+    background-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.trace-hop-row:hover,
+.ping-row:hover {
+  background: color-mix(in srgb, var(--blue-soft) 28%, var(--surface-solid));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--blue) 65%, transparent);
+}
+
+.trace-hop-row.destination:hover {
+  background: color-mix(in srgb, var(--green-soft) 58%, var(--surface-solid));
+  box-shadow: inset 3px 0 0 var(--green);
+}
+
+.trace-hop-row.timeout:hover,
+.ping-row.timeout:hover {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--text-3) 58%, transparent);
+}
+
+.trace-hop-row.unreachable:hover,
+.ping-row.unreachable:hover {
+  background: color-mix(in srgb, var(--red-soft) 48%, var(--surface-solid));
+  box-shadow: inset 3px 0 0 var(--red);
+}
+
+.trace-hop-number i {
+  width: 11px;
+  height: 11px;
+  border-width: 2px;
+}
+
+.trace-probe-time {
+  border: 1px solid color-mix(in srgb, var(--blue) 8%, transparent);
+}
+
+.trace-probe-time.good,
+.ping-latency-chip.good {
+  color: var(--blue-2);
+  background: var(--blue-soft);
+}
+
+.trace-probe-time.fair,
+.ping-latency-chip.fair {
+  color: var(--orange);
+  background: var(--orange-soft);
+  border-color: color-mix(in srgb, var(--orange) 12%, transparent);
+}
+
+.trace-probe-time.slow,
+.ping-latency-chip.slow {
+  color: var(--red);
+  background: var(--red-soft);
+  border-color: color-mix(in srgb, var(--red) 12%, transparent);
+}
+
+.trace-probe-time.muted,
+.ping-latency-chip.muted {
+  color: var(--text-3);
+  background: var(--surface-muted);
+  border-color: transparent;
+}
+
+.trace-probe-time.timeout {
+  color: var(--text-3);
+  background: var(--surface-muted);
+  border-color: transparent;
+}
+
+.trace-probe-time.unreachable {
+  color: var(--red);
+  background: var(--red-soft);
+  border-color: color-mix(in srgb, var(--red) 12%, transparent);
+}
+
+.trace-average.good {
+  color: var(--blue-2);
+}
+
+.trace-average.fair {
+  color: var(--orange);
+}
+
+.trace-average.slow {
+  color: var(--red);
+}
+
+.trace-average.muted {
+  color: var(--text-3);
+}
+
+.trace-hop-status,
+.ping-reply-status {
+  border: 1px solid transparent;
+}
+
+.trace-hop-status.destination,
+.ping-reply-status.reply {
+  border-color: color-mix(in srgb, var(--green) 13%, transparent);
+}
+
+.trace-hop-status.unreachable,
+.ping-reply-status.unreachable {
+  border-color: color-mix(in srgb, var(--red) 13%, transparent);
+}
+
+.ping-metric.good span i {
+  background: var(--green);
+  box-shadow: 0 0 0 4px var(--green-soft);
+}
+
+.ping-metric.fair span i,
+.ping-metric.warning span i {
+  background: var(--orange);
+  box-shadow: 0 0 0 4px var(--orange-soft);
+}
+
+.ping-metric.slow span i {
+  background: var(--red);
+  box-shadow: 0 0 0 4px var(--red-soft);
+}
+
+.ping-metric.muted span i {
+  background: var(--text-3);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--text-3) 13%, transparent);
+}
+
+.ping-metric.warning strong {
+  color: var(--orange);
+}
+
+.ping-sequence {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text-2);
+}
+
+.ping-sequence i {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 4px var(--green-soft);
+}
+
+.ping-sequence b {
+  font:
+    700 11.5px/1 'Cascadia Code',
+    Consolas,
+    monospace;
+}
+
+.ping-row.timeout .ping-sequence i {
+  background: var(--text-3);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--text-3) 13%, transparent);
+}
+
+.ping-row.unreachable .ping-sequence i {
+  background: var(--red);
+  box-shadow: 0 0 0 4px var(--red-soft);
+}
+
+.ping-latency-chip {
+  justify-self: end;
+  min-width: 58px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font:
+    750 11px/1 'Cascadia Code',
+    Consolas,
+    monospace;
+  text-align: center;
+  white-space: nowrap;
+}

@@ -1,0 +1,121 @@
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes refresh-turn {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes bars {
+  from {
+    opacity: 0.45;
+    transform: scaleY(0.72);
+    transform-origin: bottom;
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes tooltip-in-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes tooltip-in-top {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes progress-sheen {
+  0%,
+  18% {
+    transform: translateX(-100%);
+  }
+  72%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes progress-bars {
+  from {
+    opacity: 0.45;
+    transform: scaleY(0.65);
+    transform-origin: bottom;
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+}
+
+@keyframes progress-node {
+  0%,
+  28%,
+  100% {
+    color: var(--text-3);
+    border-color: var(--line-strong);
+  }
+  42%,
+  68% {
+    color: var(--blue);
+    border-color: color-mix(in srgb, var(--blue) 52%, var(--line));
+    box-shadow:
+      0 0 0 4px var(--surface),
+      0 0 0 7px color-mix(in srgb, var(--blue) 8%, transparent);
+  }
+}
+
+@keyframes progress-node-fill {
+  0%,
+  28%,
+  100% {
+    opacity: 0;
+    transform: scale(0.65);
+  }
+  42%,
+  68% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes progress-line {
+  0%,
+  30% {
+    transform: translateX(-100%);
+  }
+  72%,
+  100% {
+    transform: translateX(100%);
+  }
+}

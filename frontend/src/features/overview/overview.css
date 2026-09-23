@@ -1,0 +1,767 @@
+.home-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.overview-hero {
+  min-height: 132px;
+  padding: 24px 27px;
+  display: grid;
+  grid-template-columns: 56px minmax(260px, 1fr) auto auto;
+  gap: 18px;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.overview-hero:after {
+  content: '';
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  right: -130px;
+  top: -170px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--blue) 14%, transparent),
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.overview-orb {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+  border-radius: 17px;
+  background: var(--surface-muted);
+}
+
+.overview-orb.online {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.overview-hero h2 {
+  margin: 5px 0 0;
+  font-size: 20px;
+}
+
+.overview-hero p {
+  margin: 6px 0 0;
+  color: var(--text-2);
+  font-size: 10.5px;
+}
+
+.overview-meta {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.overview-meta > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.overview-meta i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-3);
+}
+
+.overview-meta i.online {
+  background: var(--green);
+  box-shadow: 0 0 0 4px var(--green-soft);
+}
+
+.overview-meta small {
+  color: var(--text-3);
+  font-size: 8.5px;
+}
+
+.overview-hero .button {
+  z-index: 1;
+}
+
+.public-network-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.public-network-card {
+  min-width: 0;
+  min-height: 190px;
+  padding: 22px 23px;
+  border-top: 3px solid var(--line-strong);
+}
+
+.public-network-card.available {
+  border-top-color: var(--green);
+}
+
+.public-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.protocol-mark {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.protocol-mark.ipv6 {
+  color: var(--violet);
+}
+
+.public-network-card > strong {
+  display: block;
+  margin: 18px 0;
+  font:
+    17px/1.35 'Cascadia Code',
+    Consolas,
+    monospace;
+}
+
+.public-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 18px;
+}
+
+.public-facts > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.public-facts span {
+  color: var(--text-3);
+  font-size: 8.5px;
+}
+
+.public-facts b {
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: 10px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-error {
+  display: block;
+  margin-top: 12px;
+  overflow: hidden;
+  color: var(--red);
+  font-size: 8.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.public-refresh-button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--text-2);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-solid);
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.public-refresh-button:hover:not(:disabled) {
+  color: var(--blue);
+  border-color: color-mix(in srgb, var(--blue) 38%, var(--line-strong));
+  box-shadow: 0 3px 10px rgba(36, 55, 85, 0.08);
+}
+
+.public-refresh-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.public-refresh-button .spinner.dark {
+  width: 14px;
+  height: 14px;
+  border-width: 1.5px;
+}
+
+.public-error.partial {
+  color: var(--orange);
+}
+
+.public-source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 11px;
+  color: var(--text-3);
+  border-top: 1px solid var(--line);
+  font-size: 10.5px;
+  line-height: 1;
+}
+
+.public-source svg {
+  flex: 0 0 auto;
+  color: var(--blue);
+}
+
+.public-source b {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-2);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adapter-section {
+  padding: 21px 24px 23px;
+}
+
+.adapter-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.adapter-filter {
+  height: 32px;
+  min-width: 118px;
+  padding: 0 30px 0 10px;
+  color: var(--text-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: var(--surface-solid);
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+.adapter-grid {
+  margin-top: 15px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+}
+
+.adapter-card {
+  position: relative;
+  min-width: 0;
+  min-height: 86px;
+  overflow: hidden;
+  padding: 13px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-muted);
+}
+
+.adapter-card.up {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--green-soft) 62%, var(--surface-muted)) 0,
+    var(--surface-muted) 36%
+  );
+}
+
+.adapter-card.up:before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--green);
+}
+
+.adapter-kind {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.adapter-kind.wifi {
+  color: var(--violet);
+  background: color-mix(in srgb, var(--violet) 13%, transparent);
+}
+
+.adapter-kind.virtual,
+.adapter-kind.loopback,
+.adapter-kind.tunnel,
+.adapter-kind.ppp,
+.adapter-kind.other {
+  color: var(--text-2);
+  background: color-mix(in srgb, var(--text-3) 13%, transparent);
+}
+
+.adapter-card > div:nth-child(2) {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.adapter-card strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adapter-card small {
+  color: var(--text-3);
+  font-size: 10px;
+}
+
+.adapter-card code {
+  color: var(--text-2);
+  font:
+    9.5px/1.35 'Cascadia Code',
+    Consolas,
+    monospace;
+}
+
+.adapter-title-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.adapter-title-row > strong {
+  min-width: 0;
+}
+
+.adapter-online {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  color: var(--green);
+  border-radius: 999px;
+  background: var(--green-soft);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.adapter-online i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 13%, transparent);
+}
+
+.adapter-metrics {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  color: var(--text-3);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.adapter-empty {
+  grid-column: 1 / -1;
+  padding: 20px;
+  color: var(--text-3);
+  font-size: 11px;
+  text-align: center;
+}
+
+.latency-section {
+  padding: 22px 24px 24px;
+}
+
+.latency-section > .section-title h3 {
+  font-size: 15px;
+}
+
+.latency-settings {
+  margin-top: 18px;
+}
+
+.latency-settings .module-settings-body {
+  padding: 15px;
+}
+
+.latency-group {
+  margin-top: 14px;
+}
+
+.latency-group + .latency-group {
+  margin-top: 11px;
+}
+
+.latency-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 11px;
+}
+
+.latency-card {
+  position: relative;
+  min-width: 0;
+  min-height: 80px;
+  padding: 12px 13px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface-muted) 78%, var(--surface-solid));
+  font: inherit;
+  text-align: left;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease;
+}
+
+.latency-card.running {
+  cursor: wait;
+}
+
+.latency-card.pending {
+  border-color: color-mix(in srgb, var(--blue) 14%, var(--line));
+}
+
+.service-mark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  border-radius: 12px;
+  background: #6b7280;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.service-mark svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+.service-mark.douyin {
+  background: #232936;
+}
+
+.service-mark.bilibili {
+  background: #f2729b;
+}
+
+.service-mark.wechat {
+  background: #18ad62;
+}
+
+.service-mark.taobao {
+  background: #f26722;
+}
+
+.service-mark.github {
+  background: #24292f;
+}
+
+.service-mark.telegram {
+  background: #2aabee;
+}
+
+.service-mark.x {
+  background: #111;
+}
+
+.service-mark.youtube {
+  background: #f22;
+}
+
+.service-mark.custom {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.service-mark.custom svg {
+  fill: none;
+  stroke: currentColor;
+}
+
+.service-tooltip-trigger {
+  display: block;
+  border-radius: 12px;
+  outline: 0;
+}
+
+.service-tooltip-trigger:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 20%, transparent);
+}
+
+.latency-tooltip {
+  position: fixed;
+  z-index: 1000;
+  width: min(250px, calc(100vw - 24px));
+  padding: 11px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--text-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--surface-solid) 96%, transparent);
+  box-shadow: 0 13px 32px rgba(19, 35, 60, 0.18);
+  pointer-events: none;
+  animation: tooltip-in-bottom 0.14s ease-out;
+}
+
+.latency-tooltip[data-placement='top'] {
+  animation-name: tooltip-in-top;
+}
+
+.latency-tooltip-url {
+  overflow: hidden;
+  color: var(--text-3);
+  font:
+    10.5px/1.35 'Cascadia Code',
+    Consolas,
+    monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.latency-tooltip strong {
+  color: var(--text);
+  font:
+    750 13px/1.3 'Cascadia Code',
+    Consolas,
+    monospace;
+}
+
+.latency-tooltip code {
+  margin-top: 1px;
+  padding-top: 8px;
+  color: var(--blue);
+  border-top: 1px solid var(--line);
+  font:
+    10px/1.45 'Cascadia Code',
+    Consolas,
+    monospace;
+}
+
+.latency-tooltip code.empty {
+  color: var(--text-3);
+}
+
+.service-copy {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  align-content: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+
+.service-copy strong {
+  overflow: visible;
+  font-size: 13px;
+  line-height: 1.25;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.region-label {
+  flex: 0 0 auto;
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.region-label.international {
+  color: var(--blue);
+}
+
+.latency-value {
+  min-width: 49px;
+  display: flex;
+  justify-content: flex-end;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.latency-value b {
+  color: var(--green);
+  font:
+    italic 750 20px/1 'Cascadia Code',
+    Consolas,
+    monospace;
+  letter-spacing: -1px;
+}
+
+.latency-value small {
+  align-self: flex-end;
+  margin: 0 0 3px 2px;
+  color: var(--green);
+  font-size: 9px;
+}
+
+.latency-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--blue);
+  font-size: 9.5px;
+  font-weight: 650;
+}
+
+.latency-value .latency-pending .spinner.dark {
+  width: 14px;
+  height: 14px;
+  border-width: 1.5px;
+}
+
+.latency-waiting {
+  color: var(--text-3);
+  font-size: 9.5px;
+}
+
+.latency-card.medium .latency-value b,
+.latency-card.medium .latency-value small {
+  color: var(--orange);
+}
+
+.latency-card.slow .latency-value b,
+.latency-card.slow .latency-value small {
+  color: var(--red);
+}
+
+.latency-card.failed .latency-value b {
+  color: var(--red);
+  font-size: 11px;
+  letter-spacing: -0.25px;
+}
+
+/* Readability overrides for overview cards. */
+
+.public-network-card {
+  min-height: 206px;
+}
+
+.public-network-card > strong {
+  font-size: 18px;
+}
+
+.public-facts {
+  gap: 14px 20px;
+}
+
+.public-facts span {
+  font-size: 10.5px;
+}
+
+.public-facts b {
+  overflow: visible;
+  font-size: 11.5px;
+  line-height: 1.45;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.public-error {
+  overflow: visible;
+  font-size: 10.5px;
+  line-height: 1.4;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.latency-settings .settings-textarea.compact {
+  min-height: 218px;
+}
+
+.adapter-filter {
+  appearance: none;
+  height: 36px;
+  min-width: 138px;
+  padding: 0 34px 0 13px;
+  border-radius: 11px;
+  background-color: var(--surface-solid);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7890' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.1px;
+  box-shadow: 0 3px 10px rgba(36, 55, 85, 0.06);
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.adapter-filter:hover {
+  border-color: color-mix(in srgb, var(--blue) 38%, var(--line-strong));
+}
+
+.adapter-filter:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 13%, transparent);
+  outline: 0;
+}
+
+.adapter-filter option {
+  color: var(--text);
+  background: var(--surface-solid);
+  font:
+    500 13px 'Segoe UI Variable',
+    'Segoe UI',
+    'Microsoft YaHei UI',
+    sans-serif;
+}
+
+.protocol-endpoint-grid {
+  margin-top: 16px;
+}

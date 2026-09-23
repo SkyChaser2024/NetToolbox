@@ -1,0 +1,7 @@
+node_modules/
+dist/
+wailsjs/
+package-lock.json
+package.json.md5
+src/assets/
+tests/lifecycle-preview.*

@@ -88,6 +88,8 @@ type trayState struct {
 	taskbarCreated uint32
 	onOpen         func()
 	onExit         func()
+	onCommand      func(Command) bool
+	onStatus       func() uintptr
 	openMu         sync.Mutex
 	lastOpen       time.Time
 	exitOnce       sync.Once
@@ -144,11 +146,12 @@ type message struct {
 // Run creates a Windows notification-area icon and blocks on its native
 // message loop. It intentionally exposes only the two actions this app needs,
 // keeping the resident background binary and allocations small.
-func Run(iconData []byte, onOpen, onExit func()) error {
+func Run(iconData []byte, onOpen, onExit func(), onCommand func(Command) bool, onStatus func() uintptr) error {
 	current, err := newTray(iconData, onOpen, onExit)
 	if err != nil {
 		return err
 	}
+	current.onCommand, current.onStatus = onCommand, onStatus
 	stateMu.Lock()
 	state = current
 	stateMu.Unlock()
@@ -296,6 +299,16 @@ func windowProc(window windows.Handle, msg uint32, wParam, lParam uintptr) uintp
 	switch msg {
 	case wmClose:
 		procDestroyWindow.Call(uintptr(window))
+		return 0
+	case wmBackgroundCommand:
+		if current.onCommand != nil && current.onCommand(Command(wParam)) {
+			return 1
+		}
+		return 0
+	case wmBackgroundStatus:
+		if current.onStatus != nil {
+			return current.onStatus()
+		}
 		return 0
 	case wmDestroy:
 		current.exitOnce.Do(func() {

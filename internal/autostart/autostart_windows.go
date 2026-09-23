@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"campusnet-toolbox/internal/tray"
 	"campusnet-toolbox/internal/winpaths"
 	"golang.org/x/sys/windows"
 )
@@ -28,7 +29,7 @@ func Configure(enabled bool) error {
 		if err != nil {
 			return err
 		}
-		taskCommand := fmt.Sprintf("\"%s\" --background", executable)
+		taskCommand := fmt.Sprintf("\"%s\" --login", executable)
 		arguments = []string{"/Create", "/TN", taskName, "/TR", taskCommand, "/SC", "ONLOGON", "/DELAY", "0000:10", "/RL", "HIGHEST", "/IT", "/F"}
 	} else {
 		query := exec.CommandContext(ctx, tool, "/Query", "/TN", taskName)
@@ -36,9 +37,6 @@ func Configure(enabled bool) error {
 		if err := query.Run(); err != nil {
 			return nil
 		}
-		end := exec.CommandContext(ctx, tool, "/End", "/TN", taskName)
-		end.SysProcAttr = &windows.SysProcAttr{HideWindow: true}
-		_ = end.Run()
 	}
 	command := exec.CommandContext(ctx, tool, arguments...)
 	command.SysProcAttr = &windows.SysProcAttr{HideWindow: true}
@@ -48,31 +46,15 @@ func Configure(enabled bool) error {
 		if message == "" {
 			message = err.Error()
 		}
-		return fmt.Errorf("更新自动认证任务失败: %s", message)
-	}
-	return nil
-}
-
-func Start() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	tool, err := winpaths.SystemExecutable("schtasks.exe")
-	if err != nil {
-		return fmt.Errorf("无法定位 Windows 任务计划程序: %w", err)
-	}
-	command := exec.CommandContext(ctx, tool, "/Run", "/TN", taskName)
-	command.SysProcAttr = &windows.SysProcAttr{HideWindow: true}
-	if output, err := command.CombinedOutput(); err != nil {
-		message := strings.TrimSpace(string(output))
-		if message == "" {
-			message = err.Error()
-		}
-		return fmt.Errorf("启动自动认证后台任务失败: %s", message)
+		return fmt.Errorf("更新登录启动任务失败: %s", message)
 	}
 	return nil
 }
 
 func LaunchBackground() error {
+	if tray.IsRunning() {
+		return nil
+	}
 	executable, err := executablePath()
 	if err != nil {
 		return err
@@ -82,7 +64,15 @@ func LaunchBackground() error {
 	if err := command.Start(); err != nil {
 		return fmt.Errorf("启动托盘后台进程失败: %w", err)
 	}
-	return command.Process.Release()
+	_ = command.Process.Release()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if tray.IsRunning() {
+			return nil
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return fmt.Errorf("后台进程未能就绪，请检查配置后重试")
 }
 
 func executablePath() (string, error) {

@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/gopacket"
 	"github.com/google/gopacket/pcap"
 )
 
@@ -93,14 +94,27 @@ func Validate(cfg Config) error {
 	return nil
 }
 
+type packetHandle interface {
+	ReadPacketData() ([]byte, gopacket.CaptureInfo, error)
+	WritePacketData([]byte) error
+	Close()
+}
+
 type Session struct {
 	cfg      Config
-	handle   *pcap.Handle
+	handle   packetHandle
 	localMAC net.HardwareAddr
 	dstMAC   net.HardwareAddr
 	sink     EventSink
 
+	// Exchange state is owned by Run; only the logoff destination is shared.
+	authenticatorMAC net.HardwareAddr
+	responseID       byte
+	responseType     byte
+	responsePending  bool
+
 	writeMu   sync.Mutex
+	closed    bool
 	dstMu     sync.Mutex
 	closeOnce sync.Once
 }
@@ -232,10 +246,17 @@ func (s *Session) handlePacket(data []byte) (packetResult, error) {
 	if bytes.Equal(frame.sourceMAC, s.localMAC) {
 		return packetResult{}, nil
 	}
-	if len(frame.sourceMAC) == 6 {
-		s.dstMu.Lock()
-		s.dstMAC = cloneMAC(frame.sourceMAC)
-		s.dstMu.Unlock()
+	if !bytes.Equal(frame.destinationMAC, s.localMAC) &&
+		!(frame.code == 1 && bytes.Equal(frame.destinationMAC, paeGroupAddress)) {
+		return packetResult{}, nil
+	}
+	if len(s.authenticatorMAC) != 0 && !bytes.Equal(frame.sourceMAC, s.authenticatorMAC) {
+		return packetResult{}, nil
+	}
+	if frame.code == 3 || frame.code == 4 {
+		if !s.responsePending || frame.identifier != s.responseID || (frame.code == 3 && s.responseType != 4) {
+			return packetResult{}, nil
+		}
 	}
 	if s.cfg.Debug {
 		s.emit(StateStarting, "debug", fmt.Sprintf("收到 EAP code=%d id=%d type=%d", frame.code, frame.identifier, frame.eapType))
@@ -254,9 +275,10 @@ func (s *Session) handlePacket(data []byte) (packetResult, error) {
 				return packetResult{}, err
 			}
 			defer clear(response)
-			if err := s.writeEAP(s.destinationMAC(), response); err != nil {
+			if err := s.writeEAP(frame.sourceMAC, response); err != nil {
 				return packetResult{}, fmt.Errorf("发送 Identity 响应失败: %w", err)
 			}
+			s.recordResponse(frame)
 			s.emit(StateWaitingChallenge, "info", "已响应账号身份，等待 MD5 Challenge")
 		case 4:
 			if len(frame.typeData) < 1 {
@@ -271,29 +293,43 @@ func (s *Session) handlePacket(data []byte) (packetResult, error) {
 				return packetResult{}, err
 			}
 			defer clear(response)
-			if err := s.writeEAP(s.destinationMAC(), response); err != nil {
+			if err := s.writeEAP(frame.sourceMAC, response); err != nil {
 				return packetResult{}, fmt.Errorf("发送 MD5 响应失败: %w", err)
 			}
+			s.recordResponse(frame)
 			s.emit(StateWaitingChallenge, "info", "已提交 EAP-MD5 响应，等待认证结果")
 		default:
 			s.emit(StateStarting, "warning", fmt.Sprintf("暂不支持交换机请求的 EAP 类型 %d", frame.eapType))
 		}
 	case 3: // Success
+		s.responsePending = false
 		s.emit(StateAuthenticated, "success", "802.1X 认证成功，网络已接入")
 		return packetResult{success: true}, nil
 	case 4: // Failure
+		s.responsePending = false
 		s.emit(StateWaitingIdentity, "warning", "802.1X 认证被拒绝")
 		return packetResult{failure: true}, nil
 	}
 	return packetResult{}, nil
 }
 
+func (s *Session) recordResponse(frame parsedEAPOLFrame) {
+	s.authenticatorMAC = cloneMAC(frame.sourceMAC)
+	s.responseID = frame.identifier
+	s.responseType = frame.eapType
+	s.responsePending = true
+	s.dstMu.Lock()
+	s.dstMAC = cloneMAC(frame.sourceMAC)
+	s.dstMu.Unlock()
+}
+
 type parsedEAPOLFrame struct {
-	sourceMAC  net.HardwareAddr
-	code       byte
-	identifier byte
-	eapType    byte
-	typeData   []byte
+	destinationMAC net.HardwareAddr
+	sourceMAC      net.HardwareAddr
+	code           byte
+	identifier     byte
+	eapType        byte
+	typeData       []byte
 }
 
 func parseEAPOLFrame(data []byte) (parsedEAPOLFrame, bool, error) {
@@ -326,9 +362,10 @@ func parseEAPOLFrame(data []byte) (parsedEAPOLFrame, bool, error) {
 		return parsedEAPOLFrame{}, false, errors.New("收到的 EAP 报文长度无效")
 	}
 	result := parsedEAPOLFrame{
-		sourceMAC:  cloneMAC(net.HardwareAddr(data[6:12])),
-		code:       eap[0],
-		identifier: eap[1],
+		destinationMAC: cloneMAC(net.HardwareAddr(data[:6])),
+		sourceMAC:      cloneMAC(net.HardwareAddr(data[6:12])),
+		code:           eap[0],
+		identifier:     eap[1],
 	}
 	if result.code == 1 || result.code == 2 {
 		if eapLength < 5 {
@@ -341,6 +378,13 @@ func parseEAPOLFrame(data []byte) (parsedEAPOLFrame, bool, error) {
 }
 
 func (s *Session) sendStart() error {
+	// Each retry starts a fresh exchange; delayed terminal packets from the
+	// previous attempt must not authenticate or reject the new attempt.
+	s.authenticatorMAC = nil
+	s.responsePending = false
+	s.dstMu.Lock()
+	s.dstMAC = cloneMAC(paeGroupAddress)
+	s.dstMu.Unlock()
 	return s.writeFrame(paeGroupAddress, buildEAPOL(eapolStart, nil))
 }
 
@@ -403,11 +447,19 @@ func (s *Session) writeFrame(dst net.HardwareAddr, payload []byte) error {
 	}
 	s.writeMu.Lock()
 	defer s.writeMu.Unlock()
+	if s.closed {
+		return net.ErrClosed
+	}
 	return s.handle.WritePacketData(frame)
 }
 
 func (s *Session) Close() {
-	s.closeOnce.Do(func() { s.handle.Close() })
+	s.closeOnce.Do(func() {
+		s.writeMu.Lock()
+		defer s.writeMu.Unlock()
+		s.closed = true
+		s.handle.Close()
+	})
 }
 
 func (s *Session) clearCredentials() {

@@ -1,5 +1,5 @@
 :root {
-  font-family: "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", sans-serif;
+  font-family: 'Segoe UI Variable', 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
   color: #172033;
   background: #f3f7fb;
   font-synthesis: none;
@@ -13,8 +13,8 @@
   --text: #172033;
   --text-2: #5c687c;
   --text-3: #8993a4;
-  --line: rgba(91, 111, 145, .16);
-  --line-strong: rgba(69, 91, 127, .25);
+  --line: rgba(91, 111, 145, 0.16);
+  --line-strong: rgba(69, 91, 127, 0.25);
   --blue: #2166f3;
   --blue-2: #1451d3;
   --blue-soft: #eaf1ff;
@@ -25,10 +25,10 @@
   --orange: #d78012;
   --orange-soft: #fff4de;
   --violet: #7057e8;
-  --shadow: 0 18px 48px rgba(42, 60, 90, .09), 0 2px 10px rgba(42, 60, 90, .04);
+  --shadow: 0 18px 48px rgba(42, 60, 90, 0.09), 0 2px 10px rgba(42, 60, 90, 0.04);
 }
 
-:root[data-theme="dark"] {
+:root[data-theme='dark'] {
   color-scheme: dark;
   --bg: #0c121d;
   --sidebar: #111927;
@@ -38,39 +38,88 @@
   --text: #ecf2fb;
   --text-2: #a8b4c6;
   --text-3: #7f8ca1;
-  --line: rgba(167, 185, 213, .15);
-  --line-strong: rgba(167, 185, 213, .25);
+  --line: rgba(167, 185, 213, 0.15);
+  --line-strong: rgba(167, 185, 213, 0.25);
   --blue: #6d9aff;
   --blue-2: #92b2ff;
-  --blue-soft: rgba(61, 112, 225, .18);
+  --blue-soft: rgba(61, 112, 225, 0.18);
   --green: #54d59e;
-  --green-soft: rgba(33, 164, 108, .16);
+  --green-soft: rgba(33, 164, 108, 0.16);
   --red: #ff7384;
-  --red-soft: rgba(214, 60, 82, .16);
+  --red-soft: rgba(214, 60, 82, 0.16);
   --orange: #f5b85b;
-  --orange-soft: rgba(215, 128, 18, .15);
+  --orange-soft: rgba(215, 128, 18, 0.15);
   --violet: #a38dff;
-  --shadow: 0 20px 50px rgba(0, 0, 0, .18), 0 2px 10px rgba(0, 0, 0, .12);
+  --shadow: 0 20px 50px rgba(0, 0, 0, 0.18), 0 2px 10px rgba(0, 0, 0, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root[data-theme="system"] {
+  :root[data-theme='system'] {
     color-scheme: dark;
-    --bg: #0c121d; --sidebar: #111927; --surface: #1b2638; --surface-solid: #1b2638; --surface-muted: #222f44;
-    --text: #ecf2fb; --text-2: #a8b4c6; --text-3: #7f8ca1; --line: rgba(167, 185, 213, .15); --line-strong: rgba(167, 185, 213, .25);
-    --blue: #6d9aff; --blue-2: #92b2ff; --blue-soft: rgba(61, 112, 225, .18); --green: #54d59e; --green-soft: rgba(33, 164, 108, .16);
-    --red: #ff7384; --red-soft: rgba(214, 60, 82, .16); --orange: #f5b85b; --orange-soft: rgba(215, 128, 18, .15); --violet: #a38dff;
-    --shadow: 0 20px 50px rgba(0, 0, 0, .18), 0 2px 10px rgba(0, 0, 0, .12);
+    --bg: #0c121d;
+    --sidebar: #111927;
+    --surface: #1b2638;
+    --surface-solid: #1b2638;
+    --surface-muted: #222f44;
+    --text: #ecf2fb;
+    --text-2: #a8b4c6;
+    --text-3: #7f8ca1;
+    --line: rgba(167, 185, 213, 0.15);
+    --line-strong: rgba(167, 185, 213, 0.25);
+    --blue: #6d9aff;
+    --blue-2: #92b2ff;
+    --blue-soft: rgba(61, 112, 225, 0.18);
+    --green: #54d59e;
+    --green-soft: rgba(33, 164, 108, 0.16);
+    --red: #ff7384;
+    --red-soft: rgba(214, 60, 82, 0.16);
+    --orange: #f5b85b;
+    --orange-soft: rgba(215, 128, 18, 0.15);
+    --violet: #a38dff;
+    --shadow: 0 20px 50px rgba(0, 0, 0, 0.18), 0 2px 10px rgba(0, 0, 0, 0.12);
   }
 }
 
-* { box-sizing: border-box; }
-html, body, #root { margin: 0; width: 100%; height: 100%; overflow: hidden; }
-body { color: var(--text); user-select: none; }
-button, input, select { font: inherit; }
-button { color: inherit; }
-button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid color-mix(in srgb, var(--blue) 72%, transparent); outline-offset: 2px; }
-input, select { user-select: text; }
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  color: var(--text);
+  user-select: none;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button {
+  color: inherit;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--blue) 72%, transparent);
+  outline-offset: 2px;
+}
+input,
+select {
+  user-select: text;
+}
 
-::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text-3) 35%, transparent); border-radius: 10px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-3) 35%, transparent);
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}

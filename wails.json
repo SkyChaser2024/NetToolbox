@@ -13,7 +13,7 @@
   "info": {
     "companyName": "Network Toolbox Contributors",
     "productName": "网络工具箱",
-    "productVersion": "0.2.0",
+    "productVersion": "0.21.0",
     "copyright": "Copyright © 2026 Network Toolbox Contributors",
     "comments": "A lightweight Windows network diagnostics and 802.1X toolkit."
   }

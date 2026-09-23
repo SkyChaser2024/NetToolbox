@@ -1,0 +1,105 @@
+@media (prefers-reduced-motion: reduce) {
+  .adapter-refresh-glyph.animate {
+    animation: none;
+  }
+  .latency-tooltip {
+    animation: none;
+  }
+  .diagnostic-progress:before,
+  .progress-spinner i,
+  .progress-step > span,
+  .progress-step > span:after,
+  .progress-step > i:after {
+    animation: none;
+  }
+  .progress-step > span {
+    color: var(--blue);
+    border-color: color-mix(in srgb, var(--blue) 52%, var(--line));
+  }
+  .progress-step > span:after {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 1060px) {
+  .app-shell {
+    grid-template-columns: 200px minmax(0, 1fr);
+  }
+  .sidebar {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .nav-item.active i {
+    left: -12px;
+  }
+  .content-scroll {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .topbar {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .auth-grid {
+    grid-template-columns: minmax(500px, 1fr) 280px;
+  }
+  .connect-card {
+    padding: 22px;
+  }
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .overview-hero {
+    grid-template-columns: 56px minmax(240px, 1fr) auto;
+  }
+  .overview-meta {
+    display: none;
+  }
+  .latency-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .adapter-grid {
+    grid-template-columns: 1fr;
+  }
+  .trace-hero {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+  .trace-form {
+    grid-template-columns: minmax(220px, 1fr) 96px 126px;
+  }
+  .trace-form .button {
+    width: 126px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .trace-advanced-grid {
+    grid-template-columns: 130px 150px minmax(200px, 1fr);
+  }
+  .ping-advanced-grid {
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+  }
+  .ping-table-head,
+  .ping-row {
+    grid-template-columns: 54px 86px minmax(150px, 1fr) 76px;
+    gap: 9px;
+    padding-left: 11px;
+    padding-right: 11px;
+  }
+  .trace-table-head,
+  .trace-hop-row {
+    grid-template-columns: 46px minmax(145px, 1fr) repeat(3, 57px) 59px 70px;
+    column-gap: 7px;
+  }
+  .trace-table-head,
+  .trace-hop-row {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .trace-probe-time {
+    min-width: 48px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+}

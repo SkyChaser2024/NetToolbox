@@ -1,0 +1,336 @@
+.icon-button,
+.square-button {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(30, 48, 77, 0.04);
+}
+
+.icon-button {
+  width: 39px;
+  height: 39px;
+  border-radius: 12px;
+}
+
+.icon-button:hover,
+.square-button:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-solid);
+}
+
+.status-pill {
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-3);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--text-3) 14%, transparent);
+}
+
+.status-pill.authenticated {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.status-pill.authenticated .status-dot {
+  background: var(--green);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--green) 16%, transparent);
+}
+
+.status-pill.starting,
+.status-pill.waiting_identity,
+.status-pill.waiting_challenge {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.status-pill.starting .status-dot,
+.status-pill.waiting_identity .status-dot,
+.status-pill.waiting_challenge .status-dot {
+  background: var(--blue);
+  animation: pulse 1.6s infinite;
+}
+
+.status-pill.failed,
+.status-pill.error {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.status-pill.failed .status-dot,
+.status-pill.error .status-dot {
+  background: var(--red);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.page-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 22px;
+}
+
+.eyebrow {
+  display: block;
+  color: var(--blue);
+  font-size: 9.5px;
+  line-height: 1;
+  letter-spacing: 1.7px;
+  font-weight: 750;
+  margin-bottom: 9px;
+}
+
+.card-heading h2,
+.tool-hero h2 {
+  margin: 0;
+  font-size: 25px;
+  line-height: 1.15;
+  letter-spacing: -0.65px;
+}
+
+.button {
+  height: 42px;
+  min-width: 128px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: 0.17s ease;
+}
+
+.button.primary {
+  color: white;
+  background: linear-gradient(145deg, #347cff, #1554dc);
+  box-shadow: 0 8px 20px rgba(31, 96, 232, 0.23);
+}
+
+.button.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 11px 24px rgba(31, 96, 232, 0.3);
+}
+
+.button.primary:active {
+  transform: translateY(0);
+}
+
+.button.primary:disabled {
+  opacity: 0.55;
+  transform: none;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.button.secondary {
+  color: var(--text-2);
+  background: var(--surface-solid);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 5px 15px rgba(38, 57, 84, 0.08);
+}
+
+.button.secondary:hover {
+  color: var(--blue);
+  border-color: color-mix(in srgb, var(--blue) 42%, var(--line-strong));
+  transform: translateY(-1px);
+}
+
+.button.secondary:disabled {
+  opacity: 0.6;
+  transform: none;
+  cursor: not-allowed;
+}
+
+.button.secondary .spinner.dark {
+  width: 15px;
+  height: 15px;
+}
+
+.button.danger,
+.trace-stop {
+  color: var(--red);
+  background: var(--red-soft);
+  border: 1px solid color-mix(in srgb, var(--red) 25%, var(--line));
+}
+
+.button.danger:hover,
+.trace-stop:hover {
+  border-color: color-mix(in srgb, var(--red) 42%, var(--line));
+}
+
+.button.danger:disabled,
+.trace-stop:disabled {
+  opacity: 0.72;
+  cursor: wait;
+}
+
+.button.danger .spinner,
+.trace-stop .spinner {
+  width: 15px;
+  height: 15px;
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 20%, transparent);
+  border-top-color: var(--red);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.section-title h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.section-title p {
+  margin: 4px 0 0;
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.notice {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  margin: 0 0 18px;
+  padding: 13px 14px;
+  border-radius: 12px;
+  font-size: 11px;
+}
+
+.notice.warning {
+  color: var(--orange);
+  background: var(--orange-soft);
+  border: 1px solid color-mix(in srgb, var(--orange) 18%, transparent);
+}
+
+.notice.error {
+  color: var(--red);
+  background: var(--red-soft);
+  border: 1px solid color-mix(in srgb, var(--red) 18%, transparent);
+}
+
+.notice svg {
+  flex: 0 0 auto;
+}
+
+.notice strong {
+  display: block;
+}
+
+.notice p {
+  margin: 3px 0 0;
+  color: var(--text-2);
+  line-height: 1.45;
+}
+
+.link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: currentColor;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.section-badge {
+  padding: 5px 8px;
+  border-radius: 10px;
+  color: var(--blue);
+  background: var(--blue-soft);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.8px;
+}
+
+.reset-button {
+  flex: 0 0 auto;
+  padding: 5px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font-size: 10.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.reset-button:hover {
+  color: var(--blue-2);
+}
+
+.loading-card {
+  height: 100%;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-2);
+  font-size: 11px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+.spinner.dark {
+  width: 25px;
+  height: 25px;
+  color: var(--blue);
+  border-color: var(--line-strong);
+  border-top-color: var(--blue);
+}

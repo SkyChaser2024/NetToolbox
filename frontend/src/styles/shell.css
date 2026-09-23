@@ -1,0 +1,234 @@
+.app-shell {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.sidebar {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 26px 16px 18px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px 31px;
+}
+
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  color: white;
+  background: linear-gradient(145deg, #2f7aff, #1554d7);
+  box-shadow: 0 9px 22px rgba(35, 100, 237, 0.27);
+}
+
+.brand > div:last-child {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.18;
+}
+
+.brand strong {
+  font-size: 16px;
+  letter-spacing: -0.2px;
+}
+
+.brand span {
+  color: var(--text-2);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.nav-item {
+  position: relative;
+  height: 46px;
+  border: 0;
+  border-radius: 12px;
+  padding: 0 13px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  text-align: left;
+  font-weight: 400;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.nav-item:hover {
+  background: color-mix(in srgb, var(--surface-solid) 64%, transparent);
+  color: var(--text);
+}
+
+.nav-item.active {
+  background: var(--blue-soft);
+  color: var(--blue-2);
+}
+
+.nav-item.active i {
+  position: absolute;
+  left: -16px;
+  width: 3px;
+  height: 21px;
+  border-radius: 0 4px 4px 0;
+  background: var(--blue);
+}
+
+.nav-item svg {
+  flex: 0 0 auto;
+}
+
+.sidebar-spacer {
+  flex: 1 1 auto;
+  min-height: 16px;
+}
+
+.version-note {
+  flex: 0 0 auto;
+  align-self: stretch;
+  min-height: 48px;
+  margin: 16px 4px 0;
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.version-note-mark {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: var(--blue);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--blue) 9%, transparent);
+}
+
+.version-note-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+}
+
+.version-note-copy small {
+  color: var(--text-3);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: 1.05px;
+}
+
+.version-note-copy strong {
+  color: var(--blue-2);
+  font:
+    750 12.5px/1.1 'Cascadia Code',
+    Consolas,
+    monospace;
+  letter-spacing: -0.2px;
+}
+
+.main-area {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  flex: 0 0 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 670;
+  letter-spacing: -0.5px;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.content-scroll {
+  min-height: 0;
+  flex: 1 1 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 26px 32px 34px;
+}
+
+.toast {
+  position: fixed;
+  z-index: 20;
+  right: 24px;
+  bottom: 22px;
+  max-width: 440px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 12px 11px 16px;
+  color: white;
+  background: rgba(28, 37, 54, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 13px;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.26);
+  font-size: 11px;
+  line-height: 1.45;
+  animation: toast-in 0.2s ease-out;
+}
+
+.toast button {
+  width: 25px;
+  height: 25px;
+  border: 0;
+  border-radius: 7px;
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}

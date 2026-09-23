@@ -1,5 +1,5 @@
 export namespace adapters {
-	
+
 	export class Adapter {
 	    deviceName: string;
 	    name: string;
@@ -11,11 +11,11 @@ export namespace adapters {
 	    recommended: boolean;
 	    interfaceIndex: number;
 	    kind: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new Adapter(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.deviceName = source["deviceName"];
@@ -34,18 +34,18 @@ export namespace adapters {
 	    adapters: Adapter[];
 	    npcapAvailable: boolean;
 	    error?: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new Result(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.adapters = this.convertValues(source["adapters"], Adapter);
 	        this.npcapAvailable = source["npcapAvailable"];
 	        this.error = source["error"];
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -67,8 +67,8 @@ export namespace adapters {
 
 }
 
-export namespace main {
-	
+export namespace desktop {
+
 	export class AuthRequest {
 	    deviceName: string;
 	    adapterLabel: string;
@@ -81,11 +81,11 @@ export namespace main {
 	    retryDelayMs: number;
 	    debug: boolean;
 	    rememberPassword: boolean;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new AuthRequest(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.deviceName = source["deviceName"];
@@ -101,6 +101,22 @@ export namespace main {
 	        this.rememberPassword = source["rememberPassword"];
 	    }
 	}
+	export class AutomaticAuthenticationStatus {
+	    running: boolean;
+	    paused: boolean;
+	    message: string;
+
+	    static createFrom(source: any = {}) {
+	        return new AutomaticAuthenticationStatus(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.running = source["running"];
+	        this.paused = source["paused"];
+	        this.message = source["message"];
+	    }
+	}
 	export class BootstrapData {
 	    profile: settings.Profile;
 	    diagnostics: settings.DiagnosticSettings;
@@ -110,14 +126,15 @@ export namespace main {
 	    npcapAvailable: boolean;
 	    adapterError?: string;
 	    configurationError?: string;
+	    backgroundWarning?: string;
 	    cachedOverview?: networkdiag.OverviewResult;
 	    authState: string;
 	    version: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new BootstrapData(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profile = this.convertValues(source["profile"], settings.Profile);
@@ -128,11 +145,12 @@ export namespace main {
 	        this.npcapAvailable = source["npcapAvailable"];
 	        this.adapterError = source["adapterError"];
 	        this.configurationError = source["configurationError"];
+	        this.backgroundWarning = source["backgroundWarning"];
 	        this.cachedOverview = this.convertValues(source["cachedOverview"], networkdiag.OverviewResult);
 	        this.authState = source["authState"];
 	        this.version = source["version"];
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -177,18 +195,18 @@ export namespace main {
 	    profile: settings.Profile;
 	    diagnostics: settings.DiagnosticSettings;
 	    system: settings.SystemPreferences;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new SettingsRequest(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.profile = this.convertValues(source["profile"], settings.Profile);
 	        this.diagnostics = this.convertValues(source["diagnostics"], settings.DiagnosticSettings);
 	        this.system = this.convertValues(source["system"], settings.SystemPreferences);
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -208,23 +226,25 @@ export namespace main {
 		}
 	}
 	export class SettingsResult {
+	    warning?: string;
 	    profile: settings.Profile;
 	    diagnostics: settings.DiagnosticSettings;
 	    system: settings.SystemPreferences;
 	    networkInterfaces: systemnet.NetworkInterface[];
-	
+
 	    static createFrom(source: any = {}) {
 	        return new SettingsResult(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.warning = source["warning"];
 	        this.profile = this.convertValues(source["profile"], settings.Profile);
 	        this.diagnostics = this.convertValues(source["diagnostics"], settings.DiagnosticSettings);
 	        this.system = this.convertValues(source["system"], settings.SystemPreferences);
 	        this.networkInterfaces = this.convertValues(source["networkInterfaces"], systemnet.NetworkInterface);
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -269,17 +289,17 @@ export namespace main {
 }
 
 export namespace networkdiag {
-	
+
 	export class IPProbeResult {
 	    available: boolean;
 	    address?: string;
 	    latencyMs?: number;
 	    error?: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new IPProbeResult(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.available = source["available"];
@@ -296,11 +316,11 @@ export namespace networkdiag {
 	    statusCode?: number;
 	    latencyMs?: number;
 	    error?: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new WebsiteProbeResult(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.url = source["url"];
@@ -317,11 +337,11 @@ export namespace networkdiag {
 	    latencyMs?: number;
 	    bytesRead?: number;
 	    error?: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new URLProbeResult(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.available = source["available"];
@@ -340,11 +360,11 @@ export namespace networkdiag {
 	    dnsAAAA: boolean;
 	    largePacket?: URLProbeResult;
 	    sites: WebsiteProbeResult[];
-	
+
 	    static createFrom(source: any = {}) {
 	        return new IPv6Result(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.connectionType = source["connectionType"];
@@ -357,7 +377,7 @@ export namespace networkdiag {
 	        this.largePacket = this.convertValues(source["largePacket"], URLProbeResult);
 	        this.sites = this.convertValues(source["sites"], WebsiteProbeResult);
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -387,11 +407,11 @@ export namespace networkdiag {
 	    statusCode?: number;
 	    latencyMs?: number;
 	    error?: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new LatencyProbe(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
@@ -412,11 +432,11 @@ export namespace networkdiag {
 	    endpoint?: string;
 	    latencyMs?: number;
 	    error?: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new NATProbe(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.server = source["server"];
@@ -440,11 +460,11 @@ export namespace networkdiag {
 	    rfc5780: boolean;
 	    probes: NATProbe[];
 	    error?: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new NATResult(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.status = source["status"];
@@ -461,7 +481,7 @@ export namespace networkdiag {
 	        this.probes = this.convertValues(source["probes"], NATProbe);
 	        this.error = source["error"];
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -491,11 +511,11 @@ export namespace networkdiag {
 	    region?: string;
 	    city?: string;
 	    error?: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new PublicNetworkInfo(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.available = source["available"];
@@ -515,11 +535,11 @@ export namespace networkdiag {
 	    ipv6: PublicNetworkInfo;
 	    probes: LatencyProbe[];
 	    checkedAt: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new OverviewResult(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.ipv4 = this.convertValues(source["ipv4"], PublicNetworkInfo);
@@ -527,7 +547,7 @@ export namespace networkdiag {
 	        this.probes = this.convertValues(source["probes"], LatencyProbe);
 	        this.checkedAt = source["checkedAt"];
 	    }
-	
+
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -546,8 +566,8 @@ export namespace networkdiag {
 		    return a;
 		}
 	}
-	
-	
+
+
 
 }
 
@@ -579,11 +599,11 @@ export namespace settings {
 	    ipv6Sites: string[];
 	    aaaaDomain: string;
 	    ipv6LargeUrl: string;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new DiagnosticSettings(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.latencyTargets = this.convertValues(source["latencyTargets"], LatencyTarget);
@@ -626,11 +646,11 @@ export namespace settings {
 	    debug: boolean;
 	    rememberPassword: boolean;
 	    passwordSet: boolean;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new Profile(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.deviceName = source["deviceName"];
@@ -648,16 +668,20 @@ export namespace settings {
 	}
 	export class SystemPreferences {
 	    priorityMode: string;
+	    startAtLogin: boolean;
+	    silentStart: boolean;
 	    autoAuthenticate: boolean;
 	    closeToTray: boolean;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new SystemPreferences(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.priorityMode = source["priorityMode"];
+	        this.startAtLogin = source["startAtLogin"];
+	        this.silentStart = source["silentStart"];
 	        this.autoAuthenticate = source["autoAuthenticate"];
 	        this.closeToTray = source["closeToTray"];
 	    }
@@ -666,7 +690,7 @@ export namespace settings {
 }
 
 export namespace systemnet {
-	
+
 	export class NetworkInterface {
 	    index: number;
 	    name: string;
@@ -680,11 +704,11 @@ export namespace systemnet {
 	    linkSpeedMbps: number;
 	    ipv4Metric: number;
 	    ipv6Metric: number;
-	
+
 	    static createFrom(source: any = {}) {
 	        return new NetworkInterface(source);
 	    }
-	
+
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.index = source["index"];

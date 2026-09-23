@@ -1,0 +1,129 @@
+/* Balanced typography scale for comfortable reading at common Windows scaling levels. */
+
+.brand span {
+  font-size: 13px;
+}
+
+.version-note,
+.overview-meta small,
+.log-row time,
+.protocol-strip,
+.adapter-card code,
+.adapter-metrics,
+.latency-value small,
+.result-status small,
+.website-name small,
+.website-error,
+.version {
+  font-size: 11.5px;
+}
+
+.eyebrow,
+.live-indicator,
+.section-badge {
+  font-size: 11.5px;
+}
+
+.field small,
+.form-actions > span,
+.section-title p,
+.empty-state p,
+.log-row p,
+.notice,
+.overview-meta > span,
+.public-facts span,
+.public-error,
+.adapter-card small,
+.region-label,
+.latency-pending,
+.latency-waiting,
+.behavior-list span,
+.result-table-head,
+.ip-card > p,
+.website-result,
+.overview-facts,
+.settings-heading p,
+.reset-button,
+.settings-field small,
+.priority-option small,
+.toggle-setting p,
+.toggle-setting div > small,
+.settings-disclosure summary small,
+.summary-side,
+.loading-card,
+.toast,
+.public-source,
+.progress-heading small,
+.progress-step-copy small,
+.trace-input-error,
+.trace-advanced-grid > label:not(.trace-dns-toggle),
+.trace-dns-toggle small,
+.trace-summary-target > span,
+.trace-summary-facts span,
+.trace-run-status,
+.trace-table-head,
+.trace-hop-nodes > span,
+.trace-waiting {
+  font-size: 12px;
+}
+
+.field > span,
+.check-row,
+.button,
+.status-pill,
+.module-settings summary > span,
+.inline-tool-settings summary > span,
+.trace-advanced summary > span,
+.auth-advanced summary > span,
+.public-facts b,
+.behavior-list strong,
+.result-table-row,
+.result-table code,
+.website-name strong,
+.settings-field > span,
+.priority-option strong,
+.toggle-setting strong,
+.settings-disclosure summary strong,
+.progress-heading strong,
+.progress-step-copy strong,
+.trace-dns-toggle strong,
+.trace-node strong {
+  font-size: 13px;
+}
+
+.field input,
+.field select,
+.settings-textarea,
+.settings-field input,
+.settings-field select,
+.trace-target input,
+.trace-protocol,
+.trace-advanced input[type='number'] {
+  font-size: 13px;
+}
+
+.adapter-card strong,
+.service-copy strong {
+  font-size: 13.5px;
+}
+
+.quality-badge,
+.probe-status,
+.availability {
+  font-size: 12px;
+}
+
+.section-title h3 {
+  font-size: 15px;
+}
+
+.settings-textarea::-webkit-scrollbar {
+  width: 9px;
+}
+
+.settings-textarea::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-3) 38%, transparent);
+  border: 3px solid transparent;
+  border-radius: 9px;
+  background-clip: content-box;
+}

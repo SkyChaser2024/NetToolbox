@@ -1,0 +1,135 @@
+.ipv6-hero:before {
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--violet) 20%, transparent),
+    transparent 70%
+  );
+}
+
+.ipv6-hero .eyebrow {
+  color: var(--violet);
+}
+
+.ip-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.ip-card {
+  min-width: 0;
+  padding: 23px;
+  border-top: 3px solid var(--line-strong);
+}
+
+.ip-card.available {
+  border-top-color: var(--green);
+}
+
+.ip-card > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ip-version {
+  font-size: 17px;
+  font-weight: 750;
+}
+
+.availability {
+  padding: 5px 9px;
+  border-radius: 13px;
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.availability.yes {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.availability.no {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.ip-card > strong {
+  display: block;
+  margin-top: 25px;
+  font-family: 'Cascadia Code', Consolas, monospace;
+  font-size: 14px;
+}
+
+.ip-card > p {
+  margin: 7px 0 0;
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.website-results {
+  margin-top: 17px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.website-result {
+  min-height: 60px;
+  padding: 10px 14px;
+  display: grid;
+  grid-template-columns: minmax(230px, 1fr) 72px 72px 76px;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: 10.5px;
+}
+
+.website-result:last-child {
+  border-bottom: 0;
+}
+
+.website-result.failed {
+  background: color-mix(in srgb, var(--red-soft) 34%, transparent);
+}
+
+.website-name {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 6px minmax(0, 1fr);
+  gap: 3px 9px;
+  align-items: center;
+}
+
+.website-name strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.website-name small {
+  grid-column: 2;
+  color: var(--text-3);
+  font:
+    9.5px/1.4 'Cascadia Code',
+    Consolas,
+    monospace;
+}
+
+.website-result time {
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.website-error {
+  grid-column: 1 / -1;
+  padding-left: 15px;
+  overflow: hidden;
+  color: var(--red);
+  font-size: 9.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

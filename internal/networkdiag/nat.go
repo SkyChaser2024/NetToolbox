@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 	"time"
 
 	"github.com/pion/stun/v3"
@@ -53,6 +54,10 @@ func CheckNAT(ctx context.Context, servers []string) NATResult {
 	go func() {
 		var lastErr error
 		for _, server := range servers {
+			if err := ctx.Err(); err != nil {
+				lastErr = err
+				break
+			}
 			result, err := behaviorDiscovery(ctx, server)
 			if err == nil {
 				discoveryDone <- discoveryOutcome{result: result}
@@ -107,8 +112,27 @@ func CheckNAT(ctx context.Context, servers []string) NATResult {
 	return fallback
 }
 
+func resolveSTUNServer(ctx context.Context, server string) (*net.UDPAddr, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	host, port, err := net.SplitHostPort(server)
+	if err != nil {
+		return nil, err
+	}
+	portNumber, err := strconv.Atoi(port)
+	if err != nil || portNumber < 1 || portNumber > 65535 {
+		return nil, fmt.Errorf("无效的 STUN 端口: %s", port)
+	}
+	ip, _, err := resolveDiagnosticTarget(ctx, host, "ipv4")
+	if err != nil {
+		return nil, err
+	}
+	return &net.UDPAddr{IP: ip, Port: portNumber}, nil
+}
+
 func behaviorDiscovery(ctx context.Context, server string) (NATResult, error) {
-	remote, err := net.ResolveUDPAddr("udp4", server)
+	remote, err := resolveSTUNServer(ctx, server)
 	if err != nil {
 		return NATResult{}, err
 	}
@@ -212,15 +236,25 @@ func basicMappingDiscovery(ctx context.Context, servers []string) NATResult {
 	defer conn.Close()
 	localIP := net.IPv4zero
 	var mapped []*net.UDPAddr
+	seenTargets := make(map[string]bool)
 	for _, server := range servers {
+		if ctx.Err() != nil {
+			break
+		}
 		probe := NATProbe{Server: server}
-		remote, resolveErr := net.ResolveUDPAddr("udp4", server)
+		remote, resolveErr := resolveSTUNServer(ctx, server)
 		if resolveErr != nil {
 			probe.Error = resolveErr.Error()
 			result.Probes = append(result.Probes, probe)
 			continue
 		}
 		probe.ServerIP = remote.IP.String()
+		// Different hostnames may resolve to the same STUN endpoint. Repeating
+		// that endpoint supplies no independent mapping evidence.
+		if seenTargets[remote.String()] {
+			continue
+		}
+		seenTargets[remote.String()] = true
 		if localIP.IsUnspecified() {
 			localIP = localIPv4For(remote)
 			result.LocalIP = localIP.String()
@@ -256,6 +290,10 @@ func basicMappingDiscovery(ctx context.Context, servers []string) NATResult {
 	if localIP.Equal(mapped[0].IP) && localPort == mapped[0].Port {
 		result.Type, result.MappingBehavior = "开放网络（无 NAT）", "无地址转换"
 		result.Summary = "本机拥有可直接观察到的公网 IPv4 地址"
+		return result
+	}
+	if len(mapped) < 2 {
+		result.Summary = "已发现公网映射，但成功响应的不同 STUN 目标不足两个，无法判断 NAT 映射类型"
 		return result
 	}
 	stable := true
@@ -295,6 +333,9 @@ func classifyNAT(result *NATResult, localIP net.IP, localPort int, mapped *net.U
 }
 
 func stunRoundTrip(ctx context.Context, conn *net.UDPConn, remote *net.UDPAddr, changeRequest []byte) (*stun.Message, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	request := stun.MustBuild(stun.TransactionID, stun.BindingRequest)
 	if changeRequest != nil {
 		request.Add(stun.AttrChangeRequest, changeRequest)
@@ -307,6 +348,21 @@ func stunRoundTrip(ctx context.Context, conn *net.UDPConn, remote *net.UDPAddr, 
 	if err := conn.SetDeadline(deadline); err != nil {
 		return nil, err
 	}
+	// Interrupt an in-flight UDP read immediately on cancellation. Wait for a
+	// running callback before the next probe reuses this socket's deadline.
+	interrupted := make(chan struct{})
+	stopInterrupt := context.AfterFunc(ctx, func() {
+		_ = conn.SetReadDeadline(time.Now())
+		close(interrupted)
+	})
+	defer func() {
+		if !stopInterrupt() {
+			<-interrupted
+		}
+	}()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if _, err := conn.WriteToUDP(request.Raw, remote); err != nil {
 		return nil, err
 	}
@@ -317,6 +373,9 @@ func stunRoundTrip(ctx context.Context, conn *net.UDPConn, remote *net.UDPAddr, 
 		}
 		count, _, err := conn.ReadFromUDP(buffer)
 		if err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
 			return nil, err
 		}
 		response := new(stun.Message)

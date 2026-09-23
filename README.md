@@ -17,7 +17,7 @@
 
 ## 下载
 
-请从仓库的 [Releases](../../releases) 页面下载 `NetToolbox-v0.2.0-windows-x64.zip`，解压后运行其中的 `NetToolbox.exe`。
+请从仓库的 [Releases](../../releases) 页面下载 `NetToolbox-v0.21.0-windows-x64.zip`，解压后运行其中的 `NetToolbox.exe`。
 
 ## 运行要求
 - [Npcap](https://npcap.com/#download)
@@ -26,16 +26,13 @@
 
 ## 本地开发
 
-需要 Go 1.26+、Node.js 20+、Wails v2 CLI 和 Windows 开发环境。
-
+需要 Go 1.26+、Node.js 24 LTS（至少 24.15，推荐 `.node-version` 中的版本）、Wails v2 CLI 和 Windows 开发环境。
 ```powershell
 go install github.com/wailsapp/wails/v2/cmd/wails@v2.14.0
 npm ci --prefix frontend
 wails dev
 ```
-
 生产构建：
-
 ```powershell
 wails build -clean -trimpath -ldflags "-s -w -buildid="
 ```
