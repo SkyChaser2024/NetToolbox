@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 
+	"campusnet-toolbox/internal/appdata"
 	"campusnet-toolbox/internal/settings"
 	"campusnet-toolbox/internal/tray"
 
@@ -17,6 +18,20 @@ import (
 
 // Run starts the foreground window or background worker for this process.
 func Run(assets fs.FS, trayIcon []byte) error {
+	parentPID, worker, err := parseLocalDataWorker(os.Args[1:])
+	if err != nil {
+		return err
+	}
+	if worker {
+		return runLocalDataWorker(parentPID)
+	}
+	paths, err := appdata.Current()
+	if err != nil {
+		return fmt.Errorf("无法定位当前用户数据目录: %w", err)
+	}
+	if err := appdata.RemoveKnownLegacyCache(paths); err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, "清理旧缓存失败:", err)
+	}
 	if isBackgroundMode(os.Args[1:]) {
 		if err := runBackground(trayIcon); err != nil {
 			return fmt.Errorf("后台服务启动失败: %w", err)
@@ -71,15 +86,20 @@ func Run(assets fs.FS, trayIcon []byte) error {
 			},
 		},
 		DragAndDrop: &options.DragAndDrop{DisableWebViewDrop: true},
-		Windows: &winoptions.Options{
-			Theme:                winoptions.SystemDefault,
-			WindowIsTranslucent:  false,
-			WebviewIsTransparent: false,
-			BackdropType:         winoptions.None,
-			ResizeDebounceMS:     8,
-		},
-		Bind: []interface{}{app},
+		Windows:     newWindowsOptions(paths),
+		Bind:        []interface{}{app},
 	})
+}
+
+func newWindowsOptions(paths appdata.Paths) *winoptions.Options {
+	return &winoptions.Options{
+		Theme:                winoptions.SystemDefault,
+		WindowIsTranslucent:  false,
+		WebviewIsTransparent: false,
+		BackdropType:         winoptions.None,
+		ResizeDebounceMS:     8,
+		WebviewUserDataPath:  paths.WebViewDir,
+	}
 }
 
 func isBackgroundMode(arguments []string) bool {

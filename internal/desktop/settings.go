@@ -31,6 +31,9 @@ type settingsEffects struct {
 func (a *App) SaveSettings(request SettingsRequest) (SettingsResult, error) {
 	a.settingsMu.Lock()
 	defer a.settingsMu.Unlock()
+	if a.clearing.Load() {
+		return SettingsResult{}, errors.New("本机数据正在清理")
+	}
 	if a.settings == nil {
 		return SettingsResult{}, errors.New("无法定位当前用户的配置目录")
 	}

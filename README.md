@@ -14,10 +14,11 @@
 - 可自定义的网站 HTTP HEAD 滚动延迟测试、NAT 类型和 IPv6 连通性检测
 - 原生 ICMP Ping 与路由追踪，支持 IPv4 / IPv6、实时丢包统计、逐跳结果和反向 DNS
 - 可选系统托盘驻留；关闭主界面后释放 WebView，仅保留轻量后台进程
+- 可在设置中清除本机数据并退出，随后可删除 ZIP 解压出的程序文件
 
 ## 下载
 
-请从仓库的 [Releases](../../releases) 页面下载 `NetToolbox-v0.21.0-windows-x64.zip`，解压后运行其中的 `NetToolbox.exe`。
+请从仓库的 [Releases](../../releases) 页面下载 `NetToolbox-v0.21.1-windows-x64.zip`，解压后运行其中的 `NetToolbox.exe`。
 
 ## 运行要求
 - [Npcap](https://npcap.com/#download)

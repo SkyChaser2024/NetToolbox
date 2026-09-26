@@ -59,7 +59,7 @@ func runBackground(icon []byte) error {
 	}()
 	controller := automonitor.New(func(ctx context.Context, status func(automonitor.State)) {
 		monitorAuthentication(ctx, store, status)
-	}, func(state automonitor.State) { tray.SetTooltip(state.String()) })
+	}, tray.SetMonitorState)
 	defer controller.Stop()
 	loadConfig := func() (automonitor.Config, error) {
 		profile, _, prefs, err := store.LoadConfiguration()

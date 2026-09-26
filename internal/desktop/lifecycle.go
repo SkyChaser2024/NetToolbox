@@ -41,12 +41,25 @@ func (a *App) shutdown(_ context.Context) {
 }
 
 func (a *App) beforeClose(_ context.Context) bool {
+	if a.clearing.Load() {
+		return false
+	}
 	if a.settings == nil {
 		return false
 	}
 	system, err := a.settings.LoadSystemPreferences()
 	if err == nil {
+		backgroundWasRunning := tray.IsRunning()
 		err = applyClosePreference(system, autostart.LaunchBackground, tray.StopExisting)
+		if err == nil {
+			current := a.auth.State()
+			if a.auth.Running() {
+				current = auth.StateIdle
+				tray.SetAuthState(string(current))
+			} else if !backgroundWasRunning {
+				tray.SetAuthState(string(current))
+			}
+		}
 	}
 	if err != nil && a.ctx != nil {
 		_, _ = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
@@ -108,6 +121,9 @@ func (a *App) Bootstrap() BootstrapData {
 				data.AuthState = auth.StateAuthenticated
 			}
 		}
+	}
+	if data.AuthState != auth.StateIdle {
+		tray.SetAuthState(string(data.AuthState))
 	}
 	return data
 }

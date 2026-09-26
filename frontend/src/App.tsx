@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { appVersion } from './api'
+import { api, appVersion } from './api'
 import { featureIcons } from './diagnosticVisuals'
 import type { IPv6Result, NATResult } from './api'
 import type { Page } from './appTypes'
@@ -44,7 +44,7 @@ function App() {
     configuredPendingProbes,
     refreshOverview,
     refreshPublicNetwork
-  } = useOverview(bootstrap, loaded, page === 'home', setToast)
+  } = useOverview(bootstrap, loaded, page === 'home', setToast, updateBootstrap)
   const { ping, updatePing, startPing, stopPing } = usePing(page === 'trace')
   const { trace, updateTrace, startTraceroute, stopTraceroute } = useTraceroute(page === 'trace')
   const [natResult, setNatResult] = useState<NATResult | null>(null)
@@ -125,7 +125,14 @@ function App() {
           />
         )
       case 'settings':
-        return <SettingsPage value={bootstrap} onSaveSettings={saveSettings} onError={setToast} />
+        return (
+          <SettingsPage
+            value={bootstrap}
+            onSaveSettings={saveSettings}
+            onClearLocalData={() => api().ClearLocalData()}
+            onError={setToast}
+          />
+        )
     }
   }
 
@@ -207,15 +214,18 @@ function App() {
             </div>
           </header>
           <div className="content-scroll">{renderPage()}</div>
+          {toast && (
+            <div className="toast-region">
+              <div className="toast" role="alert">
+                <Icon name="info" size={18} />
+                <span>{toast}</span>
+                <button onClick={() => setToast('')} aria-label="关闭提示">
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
         </main>
-        {toast && (
-          <div className="toast" role="alert">
-            <span>{toast}</span>
-            <button onClick={() => setToast('')} aria-label="关闭提示">
-              ×
-            </button>
-          </div>
-        )}
       </div>
     </DiagnosticDraftProvider>
   )

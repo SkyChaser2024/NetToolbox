@@ -5,6 +5,16 @@ import type { Adapter, AuthEvent, AuthRequest, AuthState, BootstrapData, Profile
 import { Icon } from '../../components/Icon'
 import { errorMessage } from '../../utils/format'
 
+function FieldError({ field, message }: { field: string; message?: string }) {
+  if (!message) return null
+  return (
+    <small className="field-error" id={`auth-${field}-error`} role="alert">
+      <Icon name="info" size={14} />
+      <span>{message}</span>
+    </small>
+  )
+}
+
 export function AuthPage({
   data,
   state,
@@ -25,12 +35,26 @@ export function AuthPage({
   const [advanced, setAdvanced] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshMotion, setRefreshMotion] = useState(0)
+  const [pendingLogs, setPendingLogs] = useState<AuthEvent[] | null>(null)
+  const [validationRequested, setValidationRequested] = useState(false)
+  const fieldErrors: Partial<Record<'deviceName' | 'username' | 'password' | 'localMac', string>> =
+    {}
+  if (!profile.deviceName) fieldErrors.deviceName = '请选择用于认证的网卡'
+  if (!profile.username.trim()) fieldErrors.username = '请输入校园网账号'
+  if (!password && !(profile.rememberPassword && profile.passwordSet)) {
+    fieldErrors.password = '请输入校园网密码'
+  }
+  if (!/^(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}$/i.test(profile.localMac)) {
+    fieldErrors.localMac = '请输入有效的网卡 MAC 地址'
+  }
+  const visibleErrors = validationRequested ? fieldErrors : {}
+  const startingRequest = pendingLogs === logs
   const authenticating =
     state === 'starting' ||
     state === 'waiting_identity' ||
     state === 'waiting_challenge' ||
     state === 'stopping'
-  const formDisabled = authenticating || state === 'authenticated'
+  const formDisabled = startingRequest || authenticating || state === 'authenticated'
   const ethernetAdapters = useMemo(
     () => data.adapters.filter((item) => item.kind === 'ethernet' && item.recommended),
     [data.adapters]
@@ -82,6 +106,15 @@ export function AuthPage({
   }
   const submit = async (event: FormEvent) => {
     event.preventDefault()
+    setValidationRequested(true)
+    const firstInvalid = Object.keys(fieldErrors)[0]
+    if (firstInvalid) {
+      const control = (event.currentTarget as HTMLFormElement).elements.namedItem(firstInvalid)
+      if (control instanceof HTMLElement) control.focus()
+      return
+    }
+    setValidationRequested(false)
+    setPendingLogs(logs)
     try {
       const request: AuthRequest = { ...profile, password }
       await api().Connect(request)
@@ -91,6 +124,7 @@ export function AuthPage({
       })
       setPassword('')
     } catch (error) {
+      setPendingLogs(null)
       onError(errorMessage(error))
     }
   }
@@ -143,7 +177,10 @@ export function AuthPage({
             <span>有线网卡</span>
             <div className="input-row">
               <select
+                name="deviceName"
                 value={profile.deviceName}
+                aria-invalid={Boolean(visibleErrors.deviceName)}
+                aria-describedby={visibleErrors.deviceName ? 'auth-deviceName-error' : undefined}
                 onChange={(event) => chooseAdapter(event.target.value)}
                 disabled={formDisabled}
               >
@@ -172,6 +209,7 @@ export function AuthPage({
                 </span>
               </button>
             </div>
+            <FieldError field="deviceName" message={visibleErrors.deviceName} />
             {selectedAdapter && (
               <small>
                 {selectedAdapter.description || selectedAdapter.deviceName}
@@ -182,32 +220,48 @@ export function AuthPage({
           <label className="field">
             <span>校园网账号</span>
             <input
+              name="username"
               value={profile.username}
+              aria-invalid={Boolean(visibleErrors.username)}
+              aria-describedby={visibleErrors.username ? 'auth-username-error' : undefined}
               onChange={(event) => update('username', event.target.value)}
               autoComplete="username"
               placeholder="学号 / 用户名"
               disabled={formDisabled}
             />
+            <FieldError field="username" message={visibleErrors.username} />
           </label>
           <label className="field">
             <span>密码</span>
             <input
               type="password"
+              name="password"
               value={password}
+              aria-invalid={Boolean(visibleErrors.password)}
+              aria-describedby={visibleErrors.password ? 'auth-password-error' : undefined}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
-              placeholder={profile.passwordSet ? '已安全保存，留空继续使用' : '请输入密码'}
+              placeholder={
+                profile.rememberPassword && profile.passwordSet
+                  ? '已安全保存，留空继续使用'
+                  : '请输入密码'
+              }
               disabled={formDisabled}
             />
+            <FieldError field="password" message={visibleErrors.password} />
           </label>
           <label className="field field-wide">
             <span>网卡 MAC 地址</span>
             <input
+              name="localMac"
               value={profile.localMac}
+              aria-invalid={Boolean(visibleErrors.localMac)}
+              aria-describedby={visibleErrors.localMac ? 'auth-localMac-error' : undefined}
               onChange={(event) => update('localMac', event.target.value)}
               placeholder="例如 12:34:56:78:9A:BC"
               disabled={formDisabled}
             />
+            <FieldError field="localMac" message={visibleErrors.localMac} />
           </label>
           <label className="check-row field-wide">
             <input
@@ -293,6 +347,11 @@ export function AuthPage({
                 <Icon name="plug" />
                 注销
               </button>
+            ) : startingRequest ? (
+              <button type="button" className="button primary" disabled aria-busy="true">
+                <span className="spinner" />
+                正在启动…
+              </button>
             ) : authenticating ? (
               <button type="button" className="button danger" onClick={cancel}>
                 <span className="trace-stop-square" />
@@ -326,16 +385,30 @@ export function AuthPage({
           )}
         </div>
         <div className="timeline">
+          {startingRequest && (
+            <div className="auth-pending" role="status">
+              <span className="spinner dark" />
+              正在启动认证，等待协议事件…
+            </div>
+          )}
           {logs.length === 0 ? (
             <div className="empty-state">
               <div>
                 <Icon name="activity" size={28} />
               </div>
-              <strong>{state === 'authenticated' ? '已检测到有线网络认证' : '等待开始认证'}</strong>
+              <strong>
+                {startingRequest
+                  ? '正在启动认证'
+                  : state === 'authenticated'
+                    ? '已检测到有线网络认证'
+                    : '等待开始认证'}
+              </strong>
               <p>
-                {state === 'authenticated'
-                  ? '本次启动无需重复认证，需要断开时点击“注销”。'
-                  : '交换机的 Identity、Challenge 和结果会显示在这里。'}
+                {startingRequest
+                  ? '正在检查网卡并准备认证会话。'
+                  : state === 'authenticated'
+                    ? '本次启动无需重复认证，需要断开时点击“注销”。'
+                    : '交换机的 Identity、Challenge 和结果会显示在这里。'}
               </p>
             </div>
           ) : (

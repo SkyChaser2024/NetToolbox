@@ -161,6 +161,7 @@
 }
 
 .main-area {
+  position: relative;
   min-width: 0;
   min-height: 0;
   height: 100%;
@@ -202,33 +203,53 @@
   padding: 26px 32px 34px;
 }
 
-.toast {
-  position: fixed;
+.toast-region {
+  position: absolute;
   z-index: 20;
-  right: 24px;
-  bottom: 22px;
-  max-width: 440px;
+  top: 88px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 0 24px;
+  pointer-events: none;
+}
+
+.toast {
+  max-width: min(520px, 100%);
   min-height: 48px;
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 11px 12px 11px 16px;
-  color: white;
-  background: rgba(28, 37, 54, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  background: var(--surface-solid);
+  border: 1px solid var(--line-strong);
   border-radius: 13px;
-  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.26);
+  box-shadow: var(--shadow);
   font-size: 11px;
   line-height: 1.45;
   animation: toast-in 0.2s ease-out;
+  pointer-events: auto;
+}
+
+.toast > svg {
+  flex-shrink: 0;
+  color: var(--blue);
+}
+
+.toast > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .toast button {
+  flex-shrink: 0;
   width: 25px;
   height: 25px;
   border: 0;
   border-radius: 7px;
-  color: white;
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-2);
+  background: var(--surface-muted);
   cursor: pointer;
 }

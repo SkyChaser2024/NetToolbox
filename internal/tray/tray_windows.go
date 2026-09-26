@@ -12,6 +12,8 @@ import (
 	"time"
 	"unsafe"
 
+	"campusnet-toolbox/internal/appdata"
+	"campusnet-toolbox/internal/automonitor"
 	"campusnet-toolbox/internal/privatefile"
 	"golang.org/x/sys/windows"
 )
@@ -37,7 +39,6 @@ const (
 	nifShowTip     = 0x00000080
 	imageIcon      = 1
 	lrLoadFromFile = 0x00000010
-	lrDefaultSize  = 0x00000040
 	mfString       = 0x00000000
 	mfSeparator    = 0x00000800
 	tpmRightButton = 0x0002
@@ -66,6 +67,7 @@ var (
 	procCreatePopupMenu       = user32.NewProc("CreatePopupMenu")
 	procDestroyMenu           = user32.NewProc("DestroyMenu")
 	procAppendMenu            = user32.NewProc("AppendMenuW")
+	procModifyMenu            = user32.NewProc("ModifyMenuW")
 	procGetCursorPos          = user32.NewProc("GetCursorPos")
 	procSetForegroundWindow   = user32.NewProc("SetForegroundWindow")
 	procFindWindow            = user32.NewProc("FindWindowW")
@@ -82,6 +84,7 @@ type trayState struct {
 	window         windows.Handle
 	menu           windows.Handle
 	icon           windows.Handle
+	statusIcons    [4]windows.Handle
 	instance       windows.Handle
 	className      *uint16
 	nid            notifyIconData
@@ -156,6 +159,10 @@ func Run(iconData []byte, onOpen, onExit func(), onCommand func(Command) bool, o
 	state = current
 	stateMu.Unlock()
 	defer current.destroy()
+	current.updateAuth(authUnknown)
+	if onStatus != nil {
+		current.updateMonitor(automonitor.State(onStatus()))
+	}
 
 	var msg message
 	for {
@@ -170,18 +177,6 @@ func Run(iconData []byte, onOpen, onExit func(), onCommand func(Command) bool, o
 			procDispatchMessage.Call(uintptr(unsafe.Pointer(&msg)))
 		}
 	}
-}
-
-func SetTooltip(value string) {
-	stateMu.Lock()
-	defer stateMu.Unlock()
-	if state == nil || state.window == 0 {
-		return
-	}
-	clear(state.nid.Tip[:])
-	copy(state.nid.Tip[:], utf16(value, len(state.nid.Tip))[:])
-	state.nid.Flags |= nifTip
-	procShellNotifyIcon.Call(nimModify, uintptr(unsafe.Pointer(&state.nid)))
 }
 
 func Quit() {
@@ -246,7 +241,7 @@ func newTray(iconData []byte, onOpen, onExit func()) (*trayState, error) {
 		return nil, err
 	}
 	path, _ := windows.UTF16PtrFromString(iconPath)
-	icon, _, loadErr := procLoadImage.Call(0, uintptr(unsafe.Pointer(path)), imageIcon, 0, 0, lrLoadFromFile|lrDefaultSize)
+	icon, _, loadErr := procLoadImage.Call(0, uintptr(unsafe.Pointer(path)), imageIcon, 64, 64, lrLoadFromFile)
 	if icon == 0 {
 		procDestroyWindow.Call(window)
 		return nil, fmt.Errorf("加载托盘图标失败: %w", loadErr)
@@ -259,6 +254,9 @@ func newTray(iconData []byte, onOpen, onExit func()) (*trayState, error) {
 	}
 	openText, _ := windows.UTF16PtrFromString("打开网络工具箱")
 	quitText, _ := windows.UTF16PtrFromString("退出后台")
+	procAppendMenu.Call(menu, mfString|mfDisabled, menuAuthStatus, uintptr(unsafe.Pointer(mustUTF16Ptr("认证状态：尚未检测"))))
+	procAppendMenu.Call(menu, mfString|mfDisabled, menuMonitorStatus, uintptr(unsafe.Pointer(mustUTF16Ptr("自动认证后台"))))
+	procAppendMenu.Call(menu, mfSeparator, 0, 0)
 	procAppendMenu.Call(menu, mfString, menuOpen, uintptr(unsafe.Pointer(openText)))
 	procAppendMenu.Call(menu, mfSeparator, 0, 0)
 	procAppendMenu.Call(menu, mfString, menuQuit, uintptr(unsafe.Pointer(quitText)))
@@ -277,6 +275,9 @@ func newTray(iconData []byte, onOpen, onExit func()) (*trayState, error) {
 	result.nid = notifyIconData{
 		Size: uint32(unsafe.Sizeof(notifyIconData{})), Window: result.window, ID: 1,
 		Flags: nifMessage | nifIcon | nifTip | nifShowTip, CallbackMessage: wmTray, Icon: result.icon,
+	}
+	for index := range result.statusIcons {
+		result.statusIcons[index] = createStatusIcon(result.icon, index)
 	}
 	copy(result.nid.Tip[:], utf16("网络工具箱", len(result.nid.Tip)))
 	if added, _, addErr := procShellNotifyIcon.Call(nimAdd, uintptr(unsafe.Pointer(&result.nid))); added == 0 {
@@ -297,6 +298,12 @@ func windowProc(window windows.Handle, msg uint32, wParam, lParam uintptr) uintp
 		return result
 	}
 	switch msg {
+	case wmMonitorChanged:
+		current.updateMonitor(automonitor.State(wParam))
+		return 0
+	case wmAuthChanged:
+		current.updateAuth(authStatus(wParam))
+		return 0
 	case wmClose:
 		procDestroyWindow.Call(uintptr(window))
 		return 0
@@ -384,6 +391,12 @@ func (t *trayState) destroy() {
 		procDestroyIcon.Call(uintptr(t.icon))
 		t.icon = 0
 	}
+	for index, icon := range t.statusIcons {
+		if icon != 0 {
+			procDestroyIcon.Call(uintptr(icon))
+		}
+		t.statusIcons[index] = 0
+	}
 	if t.window != 0 {
 		procDestroyWindow.Call(uintptr(t.window))
 		t.window = 0
@@ -399,15 +412,19 @@ func (t *trayState) destroy() {
 }
 
 func cacheIcon(data []byte) (string, error) {
+	paths, err := appdata.Current()
+	if err != nil {
+		return "", err
+	}
+	return cacheIconAt(data, paths)
+}
+
+func cacheIconAt(data []byte, paths appdata.Paths) (string, error) {
 	if len(data) == 0 {
 		return "", errors.New("托盘图标数据为空")
 	}
 	hash := sha256.Sum256(data)
-	root, err := os.UserCacheDir()
-	if err != nil {
-		return "", err
-	}
-	path := filepath.Join(root, "CampusNetToolbox", fmt.Sprintf("tray-%x.ico", hash[:6]))
+	path := filepath.Join(paths.CacheDir, fmt.Sprintf("tray-%x.ico", hash[:6]))
 	if cachedIconMatches(path, data) {
 		return path, nil
 	}

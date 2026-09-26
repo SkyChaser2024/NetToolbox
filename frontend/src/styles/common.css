@@ -184,9 +184,18 @@
   border: 1px solid color-mix(in srgb, var(--red) 25%, var(--line));
 }
 
-.button.danger:hover,
-.trace-stop:hover {
-  border-color: color-mix(in srgb, var(--red) 42%, var(--line));
+.button.danger:not(:disabled):hover,
+.trace-stop:not(:disabled):hover {
+  background: color-mix(in srgb, var(--red) 18%, var(--surface-solid));
+  border-color: color-mix(in srgb, var(--red) 58%, var(--line));
+  transform: translateY(-1px);
+  box-shadow: 0 9px 20px color-mix(in srgb, var(--red) 17%, transparent);
+}
+
+.button.danger:not(:disabled):active,
+.trace-stop:not(:disabled):active {
+  transform: translateY(0);
+  box-shadow: 0 3px 9px color-mix(in srgb, var(--red) 12%, transparent);
 }
 
 .button.danger:disabled,

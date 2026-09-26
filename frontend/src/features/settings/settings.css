@@ -302,3 +302,49 @@
 .compact-heading > p {
   margin: 0;
 }
+
+.settings-local-data {
+  padding: 24px;
+}
+
+.settings-local-data-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.settings-local-data h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.settings-local-data p {
+  margin: 8px 0 0;
+  color: var(--text-3);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.settings-clear-confirmation {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--red) 25%, var(--line));
+  border-radius: 12px;
+  background: var(--surface-muted);
+}
+
+.settings-clear-confirmation strong {
+  font-size: 12px;
+}
+
+.settings-clear-confirmation .settings-clear-error {
+  color: var(--red);
+}
+
+.settings-clear-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}

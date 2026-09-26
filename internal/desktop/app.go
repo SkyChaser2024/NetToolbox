@@ -3,6 +3,7 @@ package desktop
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	"campusnet-toolbox/internal/auth"
 	"campusnet-toolbox/internal/networkdiag"
@@ -11,6 +12,7 @@ import (
 
 type App struct {
 	settingsMu        sync.Mutex
+	clearing          atomic.Bool
 	ctx               context.Context
 	auth              *auth.Manager
 	settings          *settings.Store

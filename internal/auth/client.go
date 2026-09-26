@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"campusnet-toolbox/internal/nativeerrors"
+
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/pcap"
 )
@@ -138,11 +140,11 @@ func NewSession(cfg Config, sink EventSink) (*Session, error) {
 	mac, _ := net.ParseMAC(cfg.LocalMAC)
 	handle, err := pcap.OpenLive(cfg.DeviceName, 1600, true, 350*time.Millisecond)
 	if err != nil {
-		return nil, fmt.Errorf("无法打开 Npcap 网卡: %w", err)
+		return nil, fmt.Errorf("无法打开 Npcap 网卡: %w", nativeerrors.Normalize(err))
 	}
 	if err := handle.SetBPFFilter("ether proto 0x888e"); err != nil {
 		handle.Close()
-		return nil, fmt.Errorf("无法设置 EAPOL 抓包过滤器: %w", err)
+		return nil, fmt.Errorf("无法设置 EAPOL 抓包过滤器: %w", nativeerrors.Normalize(err))
 	}
 	return &Session{
 		cfg:      cfg,
@@ -218,7 +220,7 @@ func (s *Session) Run(ctx context.Context) error {
 				if ctx.Err() != nil {
 					return nil
 				}
-				return fmt.Errorf("读取 EAPOL 报文失败: %w", err)
+				return fmt.Errorf("读取 EAPOL 报文失败: %w", nativeerrors.Normalize(err))
 			}
 
 		}
@@ -405,7 +407,7 @@ func SendLogoff(deviceName, localMAC string) error {
 	}
 	handle, err := pcap.OpenLive(deviceName, 1600, false, 250*time.Millisecond)
 	if err != nil {
-		return fmt.Errorf("无法打开 Npcap 网卡: %w", err)
+		return fmt.Errorf("无法打开 Npcap 网卡: %w", nativeerrors.Normalize(err))
 	}
 	defer handle.Close()
 	frame := make([]byte, 18)
@@ -414,7 +416,7 @@ func SendLogoff(deviceName, localMAC string) error {
 	frame[12], frame[13] = 0x88, 0x8e
 	copy(frame[14:], buildEAPOL(eapolLogoff, nil))
 	if err := handle.WritePacketData(frame); err != nil {
-		return fmt.Errorf("发送 EAPOL-Logoff 失败: %w", err)
+		return fmt.Errorf("发送 EAPOL-Logoff 失败: %w", nativeerrors.Normalize(err))
 	}
 	return nil
 }
@@ -450,7 +452,7 @@ func (s *Session) writeFrame(dst net.HardwareAddr, payload []byte) error {
 	if s.closed {
 		return net.ErrClosed
 	}
-	return s.handle.WritePacketData(frame)
+	return nativeerrors.Normalize(s.handle.WritePacketData(frame))
 }
 
 func (s *Session) Close() {

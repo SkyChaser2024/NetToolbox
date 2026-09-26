@@ -56,7 +56,7 @@ export function IPv6Page({
             ) : (
               <>
                 <Icon name={toolIcons.ipv6} />
-                开始测试
+                {result ? '再次测试' : '开始测试'}
               </>
             )}
           </button>

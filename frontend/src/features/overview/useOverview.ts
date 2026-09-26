@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { api, defaultDiagnostics } from '../../api'
 import type { BootstrapData, LatencyTarget, LatencyProbe, OverviewResult } from '../../api'
 import { safeHostname, errorMessage } from '../../utils/format'
@@ -16,7 +17,8 @@ export function useOverview(
   bootstrap: BootstrapData | null,
   loaded: boolean,
   active: boolean,
-  onError: (message: string) => void
+  onError: (message: string) => void,
+  updateBootstrap: Dispatch<SetStateAction<BootstrapData | null>>
 ) {
   const [overviewResult, setOverviewResult] = useState<OverviewResult | null>(null)
   const [overviewRunning, setOverviewRunning] = useState(true)
@@ -45,17 +47,29 @@ export function useOverview(
   const refreshOverview = useCallback(async () => {
     setOverviewRunning(true)
     try {
-      const refreshed = await api().CheckOverview()
-      setOverviewResult((current) => ({
-        ...refreshed,
-        probes: current?.probes?.length ? current.probes : refreshed.probes
-      }))
+      await Promise.all([
+        api()
+          .CheckOverview()
+          .then((refreshed) => {
+            setOverviewResult((current) => ({
+              ...refreshed,
+              probes: current?.probes?.length ? current.probes : refreshed.probes
+            }))
+          })
+          .catch((error: unknown) => onError(errorMessage(error))),
+        api()
+          .RefreshNetworkInterfaces()
+          .then((networkInterfaces) => {
+            updateBootstrap((current) => (current ? { ...current, networkInterfaces } : current))
+          })
+          .catch((error: unknown) => onError(errorMessage(error)))
+      ])
     } catch (error) {
       onError(errorMessage(error))
     } finally {
       setOverviewRunning(false)
     }
-  }, [onError])
+  }, [onError, updateBootstrap])
 
   const refreshPublicNetwork = async (version: 'ipv4' | 'ipv6') => {
     if (overviewRunning || publicRunning.includes(version)) return

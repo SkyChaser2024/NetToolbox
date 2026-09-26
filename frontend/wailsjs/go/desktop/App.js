@@ -46,6 +46,10 @@ export function CheckPublicIPv6() {
   return window['go']['desktop']['App']['CheckPublicIPv6']();
 }
 
+export function ClearLocalData() {
+  return window['go']['desktop']['App']['ClearLocalData']();
+}
+
 export function Connect(arg1) {
   return window['go']['desktop']['App']['Connect'](arg1);
 }
@@ -64,6 +68,10 @@ export function OpenLink(arg1) {
 
 export function RefreshAdapters() {
   return window['go']['desktop']['App']['RefreshAdapters']();
+}
+
+export function RefreshNetworkInterfaces() {
+  return window['go']['desktop']['App']['RefreshNetworkInterfaces']();
 }
 
 export function ResumeAutomaticAuthentication() {

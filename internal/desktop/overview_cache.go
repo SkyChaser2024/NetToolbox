@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"campusnet-toolbox/internal/appdata"
 	"campusnet-toolbox/internal/networkdiag"
 	"campusnet-toolbox/internal/privatefile"
 )
@@ -26,11 +27,15 @@ type overviewCacheDocument struct {
 }
 
 func overviewCachePath() (string, error) {
-	root, err := os.UserCacheDir()
+	paths, err := appdata.Current()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(root, "CampusNetToolbox", "overview-cache.json"), nil
+	return overviewCachePathFor(paths), nil
+}
+
+func overviewCachePathFor(paths appdata.Paths) string {
+	return filepath.Join(paths.CacheDir, "overview-cache.json")
 }
 
 func saveOverviewCache(result networkdiag.OverviewResult) error {

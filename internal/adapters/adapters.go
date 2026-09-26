@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"campusnet-toolbox/internal/nativeerrors"
 	"campusnet-toolbox/internal/systemnet"
 	"github.com/google/gopacket/pcap"
 )
@@ -53,7 +54,7 @@ func ListWithInterfaces(items []systemnet.NetworkInterface) Result {
 func listWithSystemInterfaces(system []systemInterface) Result {
 	devices, err := pcap.FindAllDevs()
 	if err != nil {
-		return Result{Adapters: make([]Adapter, 0), Error: fmt.Sprintf("未检测到可用的 Npcap: %v", err)}
+		return Result{Adapters: make([]Adapter, 0), Error: fmt.Sprintf("未检测到可用的 Npcap: %v", nativeerrors.Normalize(err))}
 	}
 	result := Result{NpcapAvailable: true, Adapters: make([]Adapter, 0, len(devices))}
 	for _, device := range devices {

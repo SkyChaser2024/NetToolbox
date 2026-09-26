@@ -66,6 +66,10 @@ func listNetworkInterfaces() ([]systemnet.NetworkInterface, error) {
 	return interfaces, err
 }
 
+func (a *App) RefreshNetworkInterfaces() ([]systemnet.NetworkInterface, error) {
+	return listNetworkInterfaces()
+}
+
 func (a *App) CheckNAT() networkdiag.NATResult {
 	diagnostics := a.loadDiagnostics()
 	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)

@@ -3,6 +3,7 @@
 import {desktop} from '../models';
 import {networkdiag} from '../models';
 import {adapters} from '../models';
+import {systemnet} from '../models';
 
 export function Bootstrap():Promise<desktop.BootstrapData>;
 
@@ -26,6 +27,8 @@ export function CheckPublicIPv4():Promise<networkdiag.PublicNetworkInfo>;
 
 export function CheckPublicIPv6():Promise<networkdiag.PublicNetworkInfo>;
 
+export function ClearLocalData():Promise<void>;
+
 export function Connect(arg1:desktop.AuthRequest):Promise<void>;
 
 export function GetAutomaticAuthenticationStatus():Promise<desktop.AutomaticAuthenticationStatus>;
@@ -35,6 +38,8 @@ export function Logout():Promise<void>;
 export function OpenLink(arg1:string):Promise<void>;
 
 export function RefreshAdapters():Promise<adapters.Result>;
+
+export function RefreshNetworkInterfaces():Promise<Array<systemnet.NetworkInterface>>;
 
 export function ResumeAutomaticAuthentication():Promise<void>;
 

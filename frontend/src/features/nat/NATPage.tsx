@@ -56,7 +56,7 @@ export function NATPage({
             ) : (
               <>
                 <Icon name={toolIcons.nat} />
-                开始检测
+                {result ? '再次检测' : '开始检测'}
               </>
             )}
           </button>

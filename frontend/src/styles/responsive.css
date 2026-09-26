@@ -1,4 +1,7 @@
 @media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
   .adapter-refresh-glyph.animate {
     animation: none;
   }

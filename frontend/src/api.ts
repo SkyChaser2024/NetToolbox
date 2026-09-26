@@ -301,10 +301,12 @@ export interface BackendAPI {
   ResumeAutomaticAuthentication(): Promise<void>
   Bootstrap(): Promise<BootstrapData>
   RefreshAdapters(): Promise<{ adapters: Adapter[]; npcapAvailable: boolean; error?: string }>
+  RefreshNetworkInterfaces(): Promise<NetworkInterface[]>
   Connect(request: AuthRequest): Promise<void>
   Logout(): Promise<void>
   CancelAuthentication(): Promise<void>
   SaveSettings(value: SettingsRequest): Promise<SettingsResult>
+  ClearLocalData(): Promise<void>
   CheckOverview(): Promise<OverviewResult>
   CheckPublicIPv4(): Promise<PublicNetworkInfo>
   CheckPublicIPv6(): Promise<PublicNetworkInfo>
@@ -403,6 +405,9 @@ const previewAPI: BackendAPI = {
   async RefreshAdapters() {
     return { adapters: [], npcapAvailable: false, error: '浏览器预览无法读取本机网卡' }
   },
+  async RefreshNetworkInterfaces() {
+    return []
+  },
   async Connect() {
     throw new Error('请在 Wails 桌面应用中使用认证功能')
   },
@@ -410,6 +415,9 @@ const previewAPI: BackendAPI = {
   async CancelAuthentication() {},
   async SaveSettings(value) {
     return { ...value, networkInterfaces: [] }
+  },
+  async ClearLocalData() {
+    throw new Error('请在桌面应用中清除本机数据')
   },
   async CheckOverview() {
     throw new Error('请在 Wails 桌面应用中查看网络概览')

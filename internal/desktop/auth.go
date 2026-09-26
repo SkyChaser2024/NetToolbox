@@ -24,6 +24,39 @@ func (a *App) Connect(request AuthRequest) error {
 func (a *App) startAuthentication(request AuthRequest, saveProfile bool) error {
 	a.settingsMu.Lock()
 	defer a.settingsMu.Unlock()
+	if a.clearing.Load() {
+		return errors.New("本机数据正在清理")
+	}
+	if strings.TrimSpace(request.DeviceName) == "" {
+		return errors.New("请选择用于认证的网卡")
+	}
+	if strings.TrimSpace(request.Username) == "" {
+		return errors.New("请输入校园网账号")
+	}
+	password := request.Password
+	if password == "" && request.RememberPassword && a.settings != nil {
+		stored, err := a.settings.Password()
+		if err != nil {
+			return err
+		}
+		password = stored
+	}
+	identity := strings.TrimSpace(request.Identity)
+	if identity == "" {
+		identity = strings.TrimSpace(request.Username)
+	}
+	cfg := auth.Config{
+		DeviceName: request.DeviceName, LocalMAC: request.LocalMAC,
+		Username: strings.TrimSpace(request.Username), Password: password,
+		Identity: identity, IdentitySuffix: request.IdentitySuffix,
+		StartDelay:  time.Duration(request.StartDelayMs) * time.Millisecond,
+		RetryDelay:  time.Duration(request.RetryDelayMs) * time.Millisecond,
+		MaxAttempts: auth.DefaultMaxAttempts,
+		Debug:       request.Debug,
+	}
+	if err := auth.Validate(cfg); err != nil {
+		return err
+	}
 	if saveProfile && a.settings != nil {
 		if err := migrateLoginStartup(a.settings, autostart.Configure); err != nil {
 			return err
@@ -66,30 +99,7 @@ func (a *App) startAuthentication(request AuthRequest, saveProfile bool) error {
 		}
 		break
 	}
-	password := request.Password
-	if password == "" && request.RememberPassword && a.settings != nil {
-		stored, err := a.settings.Password()
-		if err != nil {
-			return err
-		}
-		password = stored
-	}
-	identity := strings.TrimSpace(request.Identity)
-	if identity == "" {
-		identity = strings.TrimSpace(request.Username)
-	}
-	cfg := auth.Config{
-		DeviceName: request.DeviceName, LocalMAC: request.LocalMAC,
-		Username: strings.TrimSpace(request.Username), Password: password,
-		Identity: identity, IdentitySuffix: request.IdentitySuffix,
-		StartDelay:  time.Duration(request.StartDelayMs) * time.Millisecond,
-		RetryDelay:  time.Duration(request.RetryDelayMs) * time.Millisecond,
-		MaxAttempts: auth.DefaultMaxAttempts,
-		Debug:       request.Debug,
-	}
-	if err := auth.Validate(cfg); err != nil {
-		return err
-	}
+
 	if saveProfile && a.settings != nil {
 		if err := a.settings.Save(profile, request.Password); err != nil {
 			return err
@@ -104,6 +114,7 @@ func (a *App) startAuthentication(request AuthRequest, saveProfile bool) error {
 		return nil
 	})
 	if startErr != nil {
+		tray.SetAuthState(string(auth.StateError))
 		return errors.Join(startErr, refreshErr)
 	}
 	if refreshErr != nil {
@@ -123,6 +134,7 @@ func (a *App) Logout() error {
 	if !loggedOut {
 		return err
 	}
+	tray.SetAuthState(string(auth.StateIdle))
 	if a.ctx != nil {
 		level, message := "info", "已注销，自动认证已暂停；可在设置中恢复"
 		if err != nil {
@@ -142,6 +154,7 @@ func (a *App) CancelAuthentication() error {
 }
 
 func (a *App) emitAuthEvent(event auth.Event) {
+	tray.SetAuthState(string(event.State))
 	if a.ctx != nil {
 		runtime.EventsEmit(a.ctx, "auth:event", event)
 	}

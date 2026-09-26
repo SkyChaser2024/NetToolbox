@@ -74,6 +74,31 @@
   gap: 15px 14px;
 }
 
+.auth-form .field input[aria-invalid='true'],
+.auth-form .field select[aria-invalid='true'] {
+  border-color: var(--red);
+  background: color-mix(in srgb, var(--red) 4%, var(--surface-solid));
+}
+
+.auth-form .field input[aria-invalid='true']:focus,
+.auth-form .field select[aria-invalid='true']:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 12%, transparent);
+}
+
+.auth-form .field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  color: var(--red);
+  white-space: normal;
+  overflow: visible;
+}
+
+.field-error svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
 .adapter-refresh-button {
   transition:
     color 0.16s ease,
@@ -163,6 +188,24 @@
   margin: 19px -4px 12px 2px;
   padding-right: 4px;
   overflow-y: auto;
+}
+
+.auth-pending {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  color: var(--blue);
+  background: var(--blue-soft);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.auth-pending .spinner.dark {
+  width: 15px;
+  height: 15px;
+  border-width: 1.5px;
 }
 
 .empty-state {

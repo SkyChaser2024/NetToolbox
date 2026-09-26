@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"campusnet-toolbox/internal/appdata"
 )
 
 const (
@@ -69,11 +71,18 @@ type Store struct {
 }
 
 func NewStore() (*Store, error) {
-	root, err := os.UserConfigDir()
+	paths, err := appdata.Current()
 	if err != nil {
 		return nil, err
 	}
-	return &Store{path: filepath.Join(root, "CampusNetToolbox", "config.json")}, nil
+	return newStoreWithPaths(paths)
+}
+
+func newStoreWithPaths(paths appdata.Paths) (*Store, error) {
+	if err := migrateCurrentDirectory(paths); err != nil {
+		return nil, err
+	}
+	return &Store{path: filepath.Join(paths.ConfigDir, "config.json")}, nil
 }
 
 func (s *Store) NeedsStartupMigration() (bool, error) {
@@ -105,6 +114,9 @@ func (s *Store) Password() (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	doc, err := s.loadDocument()
+	if errors.Is(err, os.ErrNotExist) {
+		return "", nil
+	}
 	if err != nil {
 		return "", err
 	}
